@@ -195,16 +195,28 @@
             }
         }
 
-        function submitRepair() {
-            const type = document.getElementById("repairType").value;
-            const detail = document.getElementById("repairDetail").value;
-            if(!detail) return alert("กรุณากรอกรายละเอียดอาการชำรุด");
-            
-            alert(`ส่งข้อมูลแจ้งซ่อม [${type}] เรียบร้อย!\nรายละเอียด: ${detail}`);
-            // หลังจากกดส่งซ่อมเสร็จ ให้เด้งกลับไปหน้าแรก (Dashboard) เพื่อดูสถานะ
-            document.getElementById("repairDetail").value = ""; // เคลียร์ข้อความเก่า
-            switchPage('dashboard');
-        }
+        async function submitRepair() {
+    const type = document.getElementById("repairType").value;
+    const detail = document.getElementById("repairDetail").value;
+    
+    if(!detail) return alert("กรุณากรอกรายละเอียดอาการชำรุด");
+    
+    // ยิง API ไปบันทึกลง Supabase
+    const res = await fetch('/api/submit-repair', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ room: currentRoom, type: type, detail: detail })
+    });
+    const result = await res.json();
+
+    if(result.success) {
+        alert("ส่งข้อมูลแจ้งซ่อมเรียบร้อย!");
+        document.getElementById("repairDetail").value = ""; 
+        switchPage('dashboard'); // กลับหน้าแรก มันจะโหลดข้อมูลจากฐานข้อมูลมาโชว์ใหม่ทันที
+    } else {
+        alert("เกิดข้อผิดพลาด: " + result.message);
+    }
+}
 
         initLiff();
     </script>

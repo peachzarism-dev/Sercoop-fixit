@@ -1,54 +1,97 @@
 const express = require('express');
 const serverless = require('serverless-http');
+const { createClient } = require('@supabase/supabase-js');
 const app = express();
 
 app.use(express.json());
 
-// 1. ฐานข้อมูลนักศึกษาจำลอง
-let mockStudentDatabase = [
-    { studentId: "6510110001", name: "นายสมชาย รักดี", room: "412", lineUserId: null },
-    { studentId: "6510110002", name: "นางสาวสมหญิง เรียนเก่ง", room: "412", lineUserId: null },
-    { studentId: "6510110003", name: "นายคนดี พากเพียร", room: "412", lineUserId: null }
-];
+// ดึงค่า URL และ Key มาจาก Environment Variables เพื่อความปลอดภัย
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_KEY;
+const supabase = createClient(supabaseUrl, supabaseKey);
 
-// 2. ฐานข้อมูลตั๋วแจ้งซ่อมจำลอง
-let mockRepairTickets = [
-    { ticketId: 101, room: "412", type: "ไฟฟ้า", detail: "หลอดไฟโต๊ะอ่านหนังสือดับ", status: "รอช่างตรวจสอบ" },
-    { ticketId: 102, room: "412", type: "ประปา", detail: "สายชำระรั่วซึม", status: "ซ่อมเสร็จสิ้น" }
-];
-
-// Router สำหรับ Netlify Serverless
 const router = express.Router();
 
-router.get('/check-user', (req, res) => {
+// 1. ตรวจสอบว่าเคยผูกบัญชี LINE หรือยัง
+router.get('/check-user', async (req, res) => {
     const { lineId } = req.query;
-    const student = mockStudentDatabase.find(s => s.lineUserId === lineId);
-    if (student) {
-        res.json({ isRegistered: true, studentName: student.name, room: student.room });
+    const { data, error } = await supabase
+        .from('students')
+        .select('*')
+        .eq('line_user_id', lineId)
+        .single(); // คาดหวังผลลัพธ์แค่ 1 รายการ
+
+    if (data) {
+        res.json({ isRegistered: true, studentName: data.full_name, room: data.room_number });
     } else {
         res.json({ isRegistered: false });
     }
 });
 
-router.post('/link-account', (req, res) => {
+// 2. ผูกบัญชี LINE กับ รหัสนักศึกษา
+router.post('/link-account', async (req, res) => {
     const { lineId, studentId } = req.body;
-    const studentIndex = mockStudentDatabase.findIndex(s => s.studentId === studentId);
-    if (studentIndex !== -1) {
-        mockStudentDatabase[studentIndex].lineUserId = lineId;
-        res.json({ success: true });
+    
+    // ค้นหานักศึกษาจากรหัส
+    const { data: student } = await supabase
+        .from('students')
+        .select('*')
+        .eq('student_id', studentId)
+        .single();
+
+    if (student) {
+        // ถ้าเจอ ให้อัปเดตใส่ line_user_id เข้าไป
+        const { error: updateError } = await supabase
+            .from('students')
+            .update({ line_user_id: lineId })
+            .eq('student_id', studentId);
+
+        if (updateError) {
+            res.json({ success: false, message: "เกิดข้อผิดพลาดในการบันทึกข้อมูล" });
+        } else {
+            res.json({ success: true });
+        }
     } else {
-        res.json({ success: false, message: "ไม่พบรหัสนักศึกษานี้ในระบบหอพัก" });
+        res.json({ success: false, message: "ไม่พบรหัสนักศึกษานี้ในระบบ" });
     }
 });
 
-router.get('/room-repairs', (req, res) => {
+// 3. ดึงรายการแจ้งซ่อมของห้องนั้นๆ
+router.get('/room-repairs', async (req, res) => {
     const { room } = req.query;
-    const roomTickets = mockRepairTickets.filter(t => t.room === room);
-    res.json({ tickets: roomTickets });
+    const { data, error } = await supabase
+        .from('repair_tickets')
+        .select('*')
+        .eq('room_number', room)
+        .order('created_at', { ascending: false }); // เรียงจากรายการใหม่สุดขึ้นก่อน
+
+    if (error) return res.json({ tickets: [] });
+
+    // แปลงรูปแบบข้อมูลให้ตรงกับที่หน้าบ้าน (Frontend) ต้องการ
+    const formattedTickets = data.map(t => ({
+        id: t.id,
+        type: t.repair_type,
+        detail: t.details,
+        status: t.status
+    }));
+    res.json({ tickets: formattedTickets });
 });
 
-// นำ Route ทั้งหมดไปต่อท้ายพาธ /.netlify/functions/api
+// 4. (เพิ่มเติม) API สำหรับบันทึกแจ้งซ่อมเรื่องใหม่ลงฐานข้อมูล
+router.post('/submit-repair', async (req, res) => {
+    const { room, type, detail } = req.body;
+    const { data, error } = await supabase
+        .from('repair_tickets')
+        .insert([{ room_number: room, repair_type: type, details: detail, status: 'รอช่างตรวจสอบ' }]);
+
+    if (error) {
+        res.json({ success: false, message: error.message });
+    } else {
+        res.json({ success: true });
+    }
+});
+
 app.use('/.netlify/functions/api', router);
-app.use('/api', router); // เผื่อกรณีรัน Localhost
+app.use('/api', router);
 
 module.exports.handler = serverless(app);
