@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบแจ้งซ่อมหอพัก ม.อ.</title>
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        * { box-sizing: border-box; font-family: 'Sarabun', sans-serif; margin: 0; padding: 0; }
+        body { background-color: #f6f9fc; color: #333333; display: flex; justify-content: center; padding: 15px; }
+        .container { width: 100%; max-width: 450px; background: #ffffff; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); padding: 24px; min-height: 500px; display: flex; flex-direction: column; }
+        
+        /* Loading Screen */
+        #loading { display: flex; align-items: center; justify-content: center; height: 300px; color: #888; font-weight: 500; }
+
+        /* Header Style */
+        .header { margin-bottom: 24px; border-bottom: 1px solid #f0f0f0; padding-bottom: 16px; }
+        .room-badge { display: inline-block; background: #e6f7ed; color: #00b900; padding: 4px 12px; border-radius: 20px; font-weight: 700; font-size: 14px; margin-bottom: 6px; }
+        .welcome-text { font-size: 18px; font-weight: 600; color: #2d3748; }
+
+        /* Typography */
+        h4 { font-size: 16px; font-weight: 600; color: #4a5568; margin-bottom: 12px; }
+
+        /* Form Controls */
+        input, select, textarea { width: 100%; padding: 12px 16px; margin-bottom: 16px; border: 1px solid #e2e8f0; border-radius: 10px; background-color: #f8fafc; font-size: 15px; transition: all 0.3s; outline: none; }
+        input:focus, select:focus, textarea:focus { border-color: #00b900; background-color: #ffffff; box-shadow: 0 0 0 3px rgba(0,185,0,0.1); }
+        textarea { height: 120px; resize: none; }
+
+        /* Buttons */
+        .btn { width: 100%; padding: 14px; border-radius: 10px; border: none; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.2s; text-align: center; }
+        .btn-primary { background-color: #00b900; color: white; box-shadow: 0 4px 12px rgba(0,185,0,0.2); }
+        .btn-primary:hover { background-color: #009900; }
+        .btn-secondary { background-color: #f1f5f9; color: #4a5568; margin-top: auto; }
+        .btn-secondary:hover { background-color: #e2e8f0; }
+
+        /* Ticket List & Items */
+        .ticket-item { background: #ffffff; border: 1px solid #f0f0f0; border-radius: 12px; padding: 14px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+        .ticket-top { display: flex; justify-content: space-between; align-items: center; }
+        .ticket-type { font-weight: 600; color: #2d3748; font-size: 15px; }
+        .ticket-detail { color: #718096; font-size: 14px; line-height: 1.4; }
+        
+        /* Status Badges */
+        .status-badge { padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; }
+        .status-pending { background-color: #fffaf0; color: #dd6b20; border: 1px solid #fbd38d; }
+        .status-success { background-color: #f0fff4; color: #38a169; border: 1px solid #9ae6b4; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div id="loading">🔄 กำลังโหลดระบบ...</div>
+
+        <div id="register-form" style="display: none;">
+            <div class="header">
+                <div class="welcome-text">🔑 ผูกบัญชีนักศึกษาหอพัก</div>
+            </div>
+            <p style="color: #718096; font-size: 14px; margin-bottom: 16px;">กรุณากรอกรหัสนักศึกษา ม.อ. เพื่อเชื่อมต่อระบบแจ้งซ่อมเข้ากับบัญชี LINE ของคุณ</p>
+            <input type="text" id="studentId" placeholder="รหัสนักศึกษา (ทดสอบใช้: 6510110001)">
+            <button class="btn btn-primary" onclick="linkAccount()">ผูกบัญชีเข้ากับ LINE</button>
+        </div>
+
+        <div id="dashboard-page" style="display: none; flex-direction: column; height: 100%; flex-grow: 1;">
+            <div class="header">
+                <span class="room-badge">🏢 ห้องพัก <span id="userRoom"></span></span>
+                <div class="welcome-text">สวัสดี, <span id="userName"></span></div>
+            </div>
+            
+            <h4>📊 สถานะงานแจ้งซ่อมในห้องของคุณ</h4>
+            <div id="tickets-list" style="flex-grow: 1; margin-bottom: 16px;">
+                </div>
+
+            <button class="btn btn-primary" onclick="switchPage('form')">➕ แจ้งซ่อมเรื่องใหม่</button>
+        </div>
+
+        <div id="form-page" style="display: none; flex-direction: column; height: 100%; flex-grow: 1;">
+            <div class="header">
+                <div class="welcome-text">📝 แจ้งซ่อมเรื่องใหม่</div>
+                <p style="color: #718096; font-size: 14px; margin-top: 4px;">ระบุข้อมูลความเสียหายที่เกิดขึ้นในห้องพัก</p>
+            </div>
+
+            <h4>ประเภทงานซ่อม</h4>
+            <select id="repairType">
+                <option value="ไฟฟ้า">🔌 ระบบไฟฟ้า / หลอดไฟ</option>
+                <option value="ประปา">🚰 ระบบประปา / ท่อน้ำ</option>
+                <option value="เฟอร์นิเจอร์">🪑 เฟอร์นิเจอร์ / ประตู / หน้าต่าง</option>
+            </select>
+
+            <h4>รายละเอียดอาการชำรุด</h4>
+            <textarea id="repairDetail" placeholder="โปรดระบุรายละเอียด เช่น หลอดไฟกลางห้องกะพริบ, ท่อน้ำใต้อ่างล้างหน้าซึม..."></textarea>
+            
+            <button class="btn btn-primary" onclick="submitRepair()">🚀 ส่งข้อมูลแจ้งซ่อม</button>
+            
+            <button class="btn btn-secondary" onclick="switchPage('dashboard')">◀ ย้อนกลับ</button>
+        </div>
+    </div>
+
+    <script>
+        let userLineId = "";
+        let currentRoom = "";
+
+        async function initLiff() {
+            try {
+                // อย่าลืมเปลี่ยนเป็น LIFF ID จริงของคุณนะครับ
+                await liff.init({ liffId: "2010385125-4gg6IDvm" }); 
+                
+                if (!liff.isLoggedIn()) {
+                    liff.login();
+                } else {
+                    const profile = await liff.getProfile();
+                    userLineId = profile.userId;
+                    checkRegistration(userLineId);
+                }
+            } catch (error) {
+                console.error("LIFF init error", error);
+            }
+        }
+
+        async function checkRegistration(lineId) {
+            const res = await fetch(`/api/check-user?lineId=${lineId}`);
+            const data = await res.json();
+            
+            document.getElementById("loading").style.display = "none";
+            if (data.isRegistered) {
+                document.getElementById("userName").innerText = data.studentName;
+                document.getElementById("userRoom").innerText = data.room;
+                currentRoom = data.room;
+                
+                // เริ่มต้นให้แสดงหน้า Dashboard
+                switchPage('dashboard');
+            } else {
+                document.getElementById("register-form").style.display = "block";
+            }
+        }
+
+        // ฟังก์ชันสลับหน้าจอ (สลับหน้า Dashboard และ หน้าฟอร์ม)
+        function switchPage(pageName) {
+            document.getElementById("dashboard-page").style.display = "none";
+            document.getElementById("form-page").style.display = "none";
+            
+            if (pageName === 'dashboard') {
+                document.getElementById("dashboard-page").style.display = "flex";
+                loadRoomDashboard(currentRoom); // โหลดแดชบอร์ดใหม่ทุกครั้งที่กลับมาหน้านี้
+            } else if (pageName === 'form') {
+                document.getElementById("form-page").style.display = "flex";
+            }
+        }
+
+        async function loadRoomDashboard(roomNumber) {
+            const res = await fetch(`/api/room-repairs?room=${roomNumber}`);
+            const data = await res.json();
+            
+            const listContainer = document.getElementById("tickets-list");
+            listContainer.innerHTML = "";
+
+            if (data.tickets.length === 0) {
+                listContainer.innerHTML = "<p style='color:#a0aec0; text-align:center; padding-top: 30px; font-size: 14px;'>ยังไม่มีประวัติการแจ้งซ่อมในห้องนี้</p>";
+                return;
+            }
+
+            data.tickets.forEach(ticket => {
+                let statusClass = ticket.status === "ซ่อมเสร็จสิ้น" ? "status-success" : "status-pending";
+                
+                listContainer.innerHTML += `
+                    <div class="ticket-item">
+                        <div class="ticket-top">
+                            <span class="ticket-type">🛠️ ${ticket.type}</span>
+                            <span class="status-badge ${statusClass}">${ticket.status}</span>
+                        </div>
+                        <div class="ticket-detail">${ticket.detail}</div>
+                    </div>
+                `;
+            });
+        }
+
+        async function linkAccount() {
+            const studentId = document.getElementById("studentId").value;
+            if(!studentId) return alert("กรุณากรอกรหัสนักศึกษา");
+
+            const res = await fetch('/api/link-account', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ lineId: userLineId, studentId: studentId })
+            });
+            const data = await res.json();
+            
+            if(data.success) {
+                alert("ผูกบัญชีสำเร็จเรียบร้อย!");
+                location.reload();
+            } else {
+                alert(data.message);
+            }
+        }
+
+        function submitRepair() {
+            const type = document.getElementById("repairType").value;
+            const detail = document.getElementById("repairDetail").value;
+            if(!detail) return alert("กรุณากรอกรายละเอียดอาการชำรุด");
+            
+            alert(`ส่งข้อมูลแจ้งซ่อม [${type}] เรียบร้อย!\nรายละเอียด: ${detail}`);
+            // หลังจากกดส่งซ่อมเสร็จ ให้เด้งกลับไปหน้าแรก (Dashboard) เพื่อดูสถานะ
+            document.getElementById("repairDetail").value = ""; // เคลียร์ข้อความเก่า
+            switchPage('dashboard');
+        }
+
+        initLiff();
+    </script>
+</body>
+</html>
