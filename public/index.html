@@ -112,47 +112,52 @@
     </div>
 
     <!-- 4. MODAL POPUP แสดง STATUS TRACKER -->
-    <div id="statusModal" class="modal-overlay" onclick="closeModal(event)">
-        <div class="modal-content" onclick="event.stopPropagation()">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                <h3 id="modalType" style="color: #2d3748;">รายละเอียดงานซ่อม</h3>
-                <span onclick="closeModalDirect()" style="font-size: 20px; cursor: pointer; color: #a0aec0;">✕</span>
-            </div>
-            
-            <p id="modalDetail" style="color: #4a5568; font-size: 14px; margin-bottom: 16px; background: #f8fafc; padding: 10px; border-radius: 8px;"></p>
-
-            <h4 style="margin-top: 10px;">📍 สถานะการดำเนินงาน</h4>
-
-            <!-- STATUS TRACKER BAR -->
-            <div class="tracker-container">
-                <div class="tracker-line"></div>
-                <div id="trackerProgress" class="tracker-progress"></div>
-
-                <!-- Step 1 -->
-                <div id="step1" class="tracker-step">
-                    <div class="step-circle">✓</div>
-                    <div class="step-text">รับเรื่อง</div>
-                </div>
-                <!-- Step 2 -->
-                <div id="step2" class="tracker-step">
-                    <div class="step-circle">✓</div>
-                    <div class="step-text">รอตรวจสอบ</div>
-                </div>
-                <!-- Step 3 -->
-                <div id="step3" class="tracker-step">
-                    <div class="step-circle">✓</div>
-                    <div class="step-text">กำลังซ่อม</div>
-                </div>
-                <!-- Step 4 -->
-                <div id="step4" class="tracker-step">
-                    <div class="step-circle">✓</div>
-                    <div class="step-text">เสร็จสิ้น</div>
-                </div>
-            </div>
-
-            <button class="btn btn-secondary" onclick="closeModalDirect()" style="margin-top: 20px;">ปิดหน้าต่าง</button>
+    <!-- MODAL POPUP แสดง STATUS TRACKER + TIMELINE DETAILS -->
+<div id="statusModal" class="modal-overlay" onclick="closeModal(event)">
+    <div class="modal-content" onclick="event.stopPropagation()">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <h3 id="modalType" style="color: #2d3748;">รายละเอียดงานซ่อม</h3>
+            <span onclick="closeModalDirect()" style="font-size: 20px; cursor: pointer; color: #a0aec0;">✕</span>
         </div>
+        
+        <p id="modalDetail" style="color: #4a5568; font-size: 14px; margin-bottom: 16px; background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px solid #edf2f7;"></p>
+
+        <h4>📍 สถานะการดำเนินงาน</h4>
+
+        <!-- TRACKER BAR -->
+        <div class="tracker-container">
+            <div class="tracker-line"></div>
+            <div id="trackerProgress" class="tracker-progress"></div>
+
+            <div id="step1" class="tracker-step"><div class="step-circle">✓</div><div class="step-text">แจ้งเรื่อง</div></div>
+            <div id="step2" class="tracker-step"><div class="step-circle">✓</div><div class="step-text">รับเรื่องแล้ว</div></div>
+            <div id="step3" class="tracker-step"><div class="step-circle">✓</div><div class="step-text">กำลังซ่อม</div></div>
+            <div id="step4" class="tracker-step"><div class="step-circle">✓</div><div class="step-text">เสร็จสิ้น</div></div>
+        </div>
+
+        <!-- 🕒 ส่วนรายละเอียดวันเวลาและผู้รับเรื่อง (เพิ่มใหม่) -->
+        <div style="background: #f8fafc; border-radius: 12px; padding: 14px; margin-top: 15px; border: 1px solid #edf2f7;">
+            <h5 style="color: #4a5568; font-size: 13px; margin-bottom: 10px; font-weight: 600;">📅 บันทึกเวลาดำเนินการ</h5>
+            
+            <div style="font-size: 13px; color: #718096; display: flex; flex-direction: column; gap: 8px;">
+                <div style="display: flex; justify-content: space-between;">
+                    <span>📝 <strong>วันที่แจ้งซ่อม:</strong></span>
+                    <span id="modalCreatedAt" style="color: #2d3748;">-</span>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                    <span>👨‍🔧 <strong>ผู้รับเรื่อง:</strong></span>
+                    <span id="modalAcceptedBy" style="color: #2d3748;">-</span>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                    <span>⏰ <strong>เวลารับเรื่อง:</strong></span>
+                    <span id="modalAcceptedAt" style="color: #2d3748;">-</span>
+                </div>
+            </div>
+        </div>
+
+        <button class="btn btn-secondary" onclick="closeModalDirect()" style="margin-top: 20px;">ปิดหน้าต่าง</button>
     </div>
+</div>
 
     <script>
         let userLineId = "";
@@ -232,40 +237,54 @@
         }
 
         // ================= ฟังก์ชันแสดง STATUS TRACKER =================
-        function openTracker(index) {
-            const ticket = globalTickets[index];
-            document.getElementById("modalType").innerText = `🛠️ ${ticket.type}`;
-            document.getElementById("modalDetail").innerText = `รายละเอียด: ${ticket.detail}`;
+        // ฟังก์ชันแปลงรูปแบบวันที่ให้เป็นภาษาไทยอ่านง่าย
+function formatThaiDateTime(isoString) {
+    if (!isoString) return "ยังไม่มีข้อมูล";
+    const date = new Date(isoString);
+    return date.toLocaleDateString('th-TH', {
+        day: 'numeric',
+        month: 'short',
+        year: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+    }) + " น.";
+}
 
-            // กำหนดระดับขั้นตามข้อความสถานะ (Status)
-            let currentStep = 1; 
-            if (ticket.status === "รอช่างตรวจสอบ" || ticket.status === "รับเรื่องแล้ว") {
-                currentStep = 2;
-            } else if (ticket.status === "กำลังดำเนินการ" || ticket.status === "กำลังซ่อม") {
-                currentStep = 3;
-            } else if (ticket.status === "ซ่อมเสร็จสิ้น") {
-                currentStep = 4;
-            }
+function openTracker(index) {
+    const ticket = globalTickets[index];
+    document.getElementById("modalType").innerText = `🛠️ ${ticket.type}`;
+    document.getElementById("modalDetail").innerText = `รายละเอียด: ${ticket.detail}`;
 
-            // คำนวณความยาวเส้น Progress (0%, 33%, 66%, 100%)
-            const progressWidths = ["0%", "33%", "66%", "100%"];
-            document.getElementById("trackerProgress").style.width = progressWidths[currentStep - 1];
+    // ใส่ข้อมูลวันเวลาและผู้รับเรื่องลงในส่วนรายละเอียดด้านล่าง
+    document.getElementById("modalCreatedAt").innerText = formatThaiDateTime(ticket.createdAt);
+    document.getElementById("modalAcceptedBy").innerText = ticket.acceptedBy ? ticket.acceptedBy : "รอเจ้าหน้าที่รับเรื่อง";
+    document.getElementById("modalAcceptedAt").innerText = formatThaiDateTime(ticket.acceptedAt);
 
-            // อัปเดตสีของแต่ละ Step วงกลม
-            for (let i = 1; i <= 4; i++) {
-                const stepEl = document.getElementById(`step${i}`);
-                stepEl.className = "tracker-step"; // ล้างคลาสเก่า
-                
-                if (i < currentStep) {
-                    stepEl.classList.add("completed");
-                } else if (i === currentStep) {
-                    stepEl.classList.add(currentStep === 4 ? "completed" : "active");
-                }
-            }
+    // กำหนดสถานะวงกลม
+    let currentStep = 1; 
+    if (ticket.status === "รับเรื่องแล้ว" || ticket.status === "รอช่างตรวจสอบ") {
+        currentStep = 2;
+    } else if (ticket.status === "กำลังดำเนินการ" || ticket.status === "กำลังซ่อม") {
+        currentStep = 3;
+    } else if (ticket.status === "ซ่อมเสร็จสิ้น") {
+        currentStep = 4;
+    }
 
-            // แสดง Pop-up Modal
-            document.getElementById("statusModal").style.display = "flex";
+    const progressWidths = ["0%", "33%", "66%", "100%"];
+    document.getElementById("trackerProgress").style.width = progressWidths[currentStep - 1];
+
+    for (let i = 1; i <= 4; i++) {
+        const stepEl = document.getElementById(`step${i}`);
+        stepEl.className = "tracker-step";
+        if (i < currentStep) {
+            stepEl.classList.add("completed");
+        } else if (i === currentStep) {
+            stepEl.classList.add(currentStep === 4 ? "completed" : "active");
         }
+    }
+
+    document.getElementById("statusModal").style.display = "flex";
+}
 
         function closeModal(event) {
             if (event.target.id === "statusModal") {
