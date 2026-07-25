@@ -12,41 +12,52 @@
     <style>
         * { box-sizing: border-box; font-family: 'Sarabun', sans-serif; margin: 0; padding: 0; }
         body { background-color: #f6f9fc; color: #333333; display: flex; justify-content: center; padding: 15px; }
-        .container { width: 100%; max-width: 450px; background: #ffffff; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); padding: 24px; min-height: 500px; display: flex; flex-direction: column; }
+        .container { width: 100%; max-width: 450px; background: #ffffff; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); padding: 24px; min-height: 500px; display: flex; flex-direction: column; position: relative; }
         
-        /* Loading Screen */
         #loading { display: flex; align-items: center; justify-content: center; height: 300px; color: #888; font-weight: 500; }
-
-        /* Header Style */
         .header { margin-bottom: 24px; border-bottom: 1px solid #f0f0f0; padding-bottom: 16px; }
         .room-badge { display: inline-block; background: #e6f7ed; color: #00b900; padding: 4px 12px; border-radius: 20px; font-weight: 700; font-size: 14px; margin-bottom: 6px; }
         .welcome-text { font-size: 18px; font-weight: 600; color: #2d3748; }
 
-        /* Typography */
         h4 { font-size: 16px; font-weight: 600; color: #4a5568; margin-bottom: 12px; }
 
-        /* Form Controls */
         input, select, textarea { width: 100%; padding: 12px 16px; margin-bottom: 16px; border: 1px solid #e2e8f0; border-radius: 10px; background-color: #f8fafc; font-size: 15px; transition: all 0.3s; outline: none; }
         input:focus, select:focus, textarea:focus { border-color: #00b900; background-color: #ffffff; box-shadow: 0 0 0 3px rgba(0,185,0,0.1); }
         textarea { height: 120px; resize: none; }
 
-        /* Buttons */
         .btn { width: 100%; padding: 14px; border-radius: 10px; border: none; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.2s; text-align: center; }
         .btn-primary { background-color: #00b900; color: white; box-shadow: 0 4px 12px rgba(0,185,0,0.2); }
         .btn-primary:hover { background-color: #009900; }
         .btn-secondary { background-color: #f1f5f9; color: #4a5568; margin-top: auto; }
-        .btn-secondary:hover { background-color: #e2e8f0; }
 
-        /* Ticket List & Items */
-        .ticket-item { background: #ffffff; border: 1px solid #f0f0f0; border-radius: 12px; padding: 14px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+        /* Ticket Cards (ให้คลิกได้) */
+        .ticket-item { background: #ffffff; border: 1px solid #f0f0f0; border-radius: 12px; padding: 16px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; }
+        .ticket-item:hover { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,0.06); }
         .ticket-top { display: flex; justify-content: space-between; align-items: center; }
         .ticket-type { font-weight: 600; color: #2d3748; font-size: 15px; }
-        .ticket-detail { color: #718096; font-size: 14px; line-height: 1.4; }
+        .ticket-detail { color: #718096; font-size: 14px; }
         
-        /* Status Badges */
         .status-badge { padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; }
         .status-pending { background-color: #fffaf0; color: #dd6b20; border: 1px solid #fbd38d; }
         .status-success { background-color: #f0fff4; color: #38a169; border: 1px solid #9ae6b4; }
+
+        /* ================= STATUS TRACKER MODAL ================= */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: flex-end; z-index: 1000; }
+        .modal-content { background: #ffffff; width: 100%; max-width: 450px; border-radius: 20px 20px 0 0; padding: 24px; box-shadow: 0 -4px 20px rgba(0,0,0,0.1); animation: slideUp 0.3s ease-out; }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+        .tracker-container { display: flex; justify-content: space-between; align-items: center; position: relative; margin: 30px 0; padding: 0 10px; }
+        .tracker-line { position: absolute; top: 18px; left: 35px; right: 35px; height: 4px; background: #e2e8f0; z-index: 1; }
+        .tracker-progress { position: absolute; top: 18px; left: 35px; height: 4px; background: #00b900; z-index: 1; transition: width 0.3s ease; }
+        
+        .tracker-step { display: flex; flex-direction: column; align-items: center; z-index: 2; position: relative; width: 60px; }
+        .step-circle { width: 36px; height: 36px; border-radius: 50%; background: #ffffff; border: 3px solid #cbd5e0; color: #a0aec0; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; transition: all 0.3s; }
+        .step-text { font-size: 11px; margin-top: 8px; color: #718096; text-align: center; font-weight: 500; }
+        
+        /* Step Active Statuses */
+        .tracker-step.completed .step-circle { border-color: #00b900; background: #00b900; color: white; }
+        .tracker-step.active .step-circle { border-color: #00b900; background: #ffffff; color: #00b900; }
+        .tracker-step.completed .step-text, .tracker-step.active .step-text { color: #2d3748; font-weight: 600; }
     </style>
 </head>
 <body>
@@ -54,15 +65,17 @@
     <div class="container">
         <div id="loading">🔄 กำลังโหลดระบบ...</div>
 
+        <!-- 1. หน้าจอผูกบัญชี -->
         <div id="register-form" style="display: none;">
             <div class="header">
                 <div class="welcome-text">🔑 ผูกบัญชีนักศึกษาหอพัก</div>
             </div>
-            <p style="color: #718096; font-size: 14px; margin-bottom: 16px;">กรุณากรอกรหัสนักศึกษา ม.อ. เพื่อเชื่อมต่อระบบแจ้งซ่อมเข้ากับบัญชี LINE ของคุณ</p>
-            <input type="text" id="studentId" placeholder="รหัสนักศึกษา (ทดสอบใช้: 6510110001)">
+            <p style="color: #718096; font-size: 14px; margin-bottom: 16px;">กรุณากรอกรหัสนักศึกษาเพื่อเชื่อมต่อระบบ</p>
+            <input type="text" id="studentId" placeholder="รหัสนักศึกษา (เช่น: 6510110001)">
             <button class="btn btn-primary" onclick="linkAccount()">ผูกบัญชีเข้ากับ LINE</button>
         </div>
 
+        <!-- 2. หน้า Dashboard -->
         <div id="dashboard-page" style="display: none; flex-direction: column; height: 100%; flex-grow: 1;">
             <div class="header">
                 <span class="room-badge">🏢 ห้องพัก <span id="userRoom"></span></span>
@@ -70,16 +83,17 @@
             </div>
             
             <h4>📊 สถานะงานแจ้งซ่อมในห้องของคุณ</h4>
-            <div id="tickets-list" style="flex-grow: 1; margin-bottom: 16px;">
-                </div>
+            <p style="color: #a0aec0; font-size: 12px; margin-top: -8px; margin-bottom: 12px;">💡 คลิกที่รายการเพื่อดูรายละเอียดและติดตามสถานะ</p>
+            
+            <div id="tickets-list" style="flex-grow: 1; margin-bottom: 16px;"></div>
 
             <button class="btn btn-primary" onclick="switchPage('form')">➕ แจ้งซ่อมเรื่องใหม่</button>
         </div>
 
+        <!-- 3. หน้าฟอร์มแจ้งซ่อม -->
         <div id="form-page" style="display: none; flex-direction: column; height: 100%; flex-grow: 1;">
             <div class="header">
                 <div class="welcome-text">📝 แจ้งซ่อมเรื่องใหม่</div>
-                <p style="color: #718096; font-size: 14px; margin-top: 4px;">ระบุข้อมูลความเสียหายที่เกิดขึ้นในห้องพัก</p>
             </div>
 
             <h4>ประเภทงานซ่อม</h4>
@@ -90,23 +104,65 @@
             </select>
 
             <h4>รายละเอียดอาการชำรุด</h4>
-            <textarea id="repairDetail" placeholder="โปรดระบุรายละเอียด เช่น หลอดไฟกลางห้องกะพริบ, ท่อน้ำใต้อ่างล้างหน้าซึม..."></textarea>
+            <textarea id="repairDetail" placeholder="โปรดระบุรายละเอียด..."></textarea>
             
             <button class="btn btn-primary" onclick="submitRepair()">🚀 ส่งข้อมูลแจ้งซ่อม</button>
-            
             <button class="btn btn-secondary" onclick="switchPage('dashboard')">◀ ย้อนกลับ</button>
+        </div>
+    </div>
+
+    <!-- 4. MODAL POPUP แสดง STATUS TRACKER -->
+    <div id="statusModal" class="modal-overlay" onclick="closeModal(event)">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <h3 id="modalType" style="color: #2d3748;">รายละเอียดงานซ่อม</h3>
+                <span onclick="closeModalDirect()" style="font-size: 20px; cursor: pointer; color: #a0aec0;">✕</span>
+            </div>
+            
+            <p id="modalDetail" style="color: #4a5568; font-size: 14px; margin-bottom: 16px; background: #f8fafc; padding: 10px; border-radius: 8px;"></p>
+
+            <h4 style="margin-top: 10px;">📍 สถานะการดำเนินงาน</h4>
+
+            <!-- STATUS TRACKER BAR -->
+            <div class="tracker-container">
+                <div class="tracker-line"></div>
+                <div id="trackerProgress" class="tracker-progress"></div>
+
+                <!-- Step 1 -->
+                <div id="step1" class="tracker-step">
+                    <div class="step-circle">✓</div>
+                    <div class="step-text">รับเรื่อง</div>
+                </div>
+                <!-- Step 2 -->
+                <div id="step2" class="tracker-step">
+                    <div class="step-circle">✓</div>
+                    <div class="step-text">รอตรวจสอบ</div>
+                </div>
+                <!-- Step 3 -->
+                <div id="step3" class="tracker-step">
+                    <div class="step-circle">✓</div>
+                    <div class="step-text">กำลังซ่อม</div>
+                </div>
+                <!-- Step 4 -->
+                <div id="step4" class="tracker-step">
+                    <div class="step-circle">✓</div>
+                    <div class="step-text">เสร็จสิ้น</div>
+                </div>
+            </div>
+
+            <button class="btn btn-secondary" onclick="closeModalDirect()" style="margin-top: 20px;">ปิดหน้าต่าง</button>
         </div>
     </div>
 
     <script>
         let userLineId = "";
         let currentRoom = "";
+        let globalTickets = []; // เก็บข้อมูลรายการซ่อมทั้งหมดไว้ใช้งาน
 
         async function initLiff() {
             try {
-                // อย่าลืมเปลี่ยนเป็น LIFF ID จริงของคุณนะครับ
-                await liff.init({ liffId: "2010385125-4gg6IDvm" }); 
-                
+                // เปลี่ยนเป็น LIFF ID ของคุณ
+                await liff.init({ liffId: "YOUR_LIFF_ID" }); 
                 if (!liff.isLoggedIn()) {
                     liff.login();
                 } else {
@@ -128,22 +184,19 @@
                 document.getElementById("userName").innerText = data.studentName;
                 document.getElementById("userRoom").innerText = data.room;
                 currentRoom = data.room;
-                
-                // เริ่มต้นให้แสดงหน้า Dashboard
                 switchPage('dashboard');
             } else {
                 document.getElementById("register-form").style.display = "block";
             }
         }
 
-        // ฟังก์ชันสลับหน้าจอ (สลับหน้า Dashboard และ หน้าฟอร์ม)
         function switchPage(pageName) {
             document.getElementById("dashboard-page").style.display = "none";
             document.getElementById("form-page").style.display = "none";
             
             if (pageName === 'dashboard') {
                 document.getElementById("dashboard-page").style.display = "flex";
-                loadRoomDashboard(currentRoom); // โหลดแดชบอร์ดใหม่ทุกครั้งที่กลับมาหน้านี้
+                loadRoomDashboard(currentRoom);
             } else if (pageName === 'form') {
                 document.getElementById("form-page").style.display = "flex";
             }
@@ -153,19 +206,21 @@
             const res = await fetch(`/api/room-repairs?room=${roomNumber}`);
             const data = await res.json();
             
+            globalTickets = data.tickets || [];
             const listContainer = document.getElementById("tickets-list");
             listContainer.innerHTML = "";
 
-            if (data.tickets.length === 0) {
+            if (globalTickets.length === 0) {
                 listContainer.innerHTML = "<p style='color:#a0aec0; text-align:center; padding-top: 30px; font-size: 14px;'>ยังไม่มีประวัติการแจ้งซ่อมในห้องนี้</p>";
                 return;
             }
 
-            data.tickets.forEach(ticket => {
+            globalTickets.forEach((ticket, index) => {
                 let statusClass = ticket.status === "ซ่อมเสร็จสิ้น" ? "status-success" : "status-pending";
                 
+                // เพิ่ม onclick="openTracker(index)" ให้กดคลิกเปิดดู Tracker ได้
                 listContainer.innerHTML += `
-                    <div class="ticket-item">
+                    <div class="ticket-item" onclick="openTracker(${index})">
                         <div class="ticket-top">
                             <span class="ticket-type">🛠️ ${ticket.type}</span>
                             <span class="status-badge ${statusClass}">${ticket.status}</span>
@@ -174,6 +229,52 @@
                     </div>
                 `;
             });
+        }
+
+        // ================= ฟังก์ชันแสดง STATUS TRACKER =================
+        function openTracker(index) {
+            const ticket = globalTickets[index];
+            document.getElementById("modalType").innerText = `🛠️ ${ticket.type}`;
+            document.getElementById("modalDetail").innerText = `รายละเอียด: ${ticket.detail}`;
+
+            // กำหนดระดับขั้นตามข้อความสถานะ (Status)
+            let currentStep = 1; 
+            if (ticket.status === "รอช่างตรวจสอบ" || ticket.status === "รับเรื่องแล้ว") {
+                currentStep = 2;
+            } else if (ticket.status === "กำลังดำเนินการ" || ticket.status === "กำลังซ่อม") {
+                currentStep = 3;
+            } else if (ticket.status === "ซ่อมเสร็จสิ้น") {
+                currentStep = 4;
+            }
+
+            // คำนวณความยาวเส้น Progress (0%, 33%, 66%, 100%)
+            const progressWidths = ["0%", "33%", "66%", "100%"];
+            document.getElementById("trackerProgress").style.width = progressWidths[currentStep - 1];
+
+            // อัปเดตสีของแต่ละ Step วงกลม
+            for (let i = 1; i <= 4; i++) {
+                const stepEl = document.getElementById(`step${i}`);
+                stepEl.className = "tracker-step"; // ล้างคลาสเก่า
+                
+                if (i < currentStep) {
+                    stepEl.classList.add("completed");
+                } else if (i === currentStep) {
+                    stepEl.classList.add(currentStep === 4 ? "completed" : "active");
+                }
+            }
+
+            // แสดง Pop-up Modal
+            document.getElementById("statusModal").style.display = "flex";
+        }
+
+        function closeModal(event) {
+            if (event.target.id === "statusModal") {
+                document.getElementById("statusModal").style.display = "none";
+            }
+        }
+
+        function closeModalDirect() {
+            document.getElementById("statusModal").style.display = "none";
         }
 
         async function linkAccount() {
@@ -196,27 +297,26 @@
         }
 
         async function submitRepair() {
-    const type = document.getElementById("repairType").value;
-    const detail = document.getElementById("repairDetail").value;
-    
-    if(!detail) return alert("กรุณากรอกรายละเอียดอาการชำรุด");
-    
-    // ยิง API ไปบันทึกลง Supabase
-    const res = await fetch('/api/submit-repair', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ room: currentRoom, type: type, detail: detail })
-    });
-    const result = await res.json();
+            const type = document.getElementById("repairType").value;
+            const detail = document.getElementById("repairDetail").value;
+            
+            if(!detail) return alert("กรุณากรอกรายละเอียดอาการชำรุด");
+            
+            const res = await fetch('/api/submit-repair', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ room: currentRoom, type: type, detail: detail })
+            });
+            const result = await res.json();
 
-    if(result.success) {
-        alert("ส่งข้อมูลแจ้งซ่อมเรียบร้อย!");
-        document.getElementById("repairDetail").value = ""; 
-        switchPage('dashboard'); // กลับหน้าแรก มันจะโหลดข้อมูลจากฐานข้อมูลมาโชว์ใหม่ทันที
-    } else {
-        alert("เกิดข้อผิดพลาด: " + result.message);
-    }
-}
+            if(result.success) {
+                alert("ส่งข้อมูลแจ้งซ่อมเรียบร้อย!");
+                document.getElementById("repairDetail").value = ""; 
+                switchPage('dashboard');
+            } else {
+                alert("เกิดข้อผิดพลาด: " + result.message);
+            }
+        }
 
         initLiff();
     </script>
