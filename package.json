@@ -12,6 +12,7 @@
   "type": "commonjs",
   "dependencies": {
     "@supabase/supabase-js": "^2.110.8",
+    "cors": "^2.8.6",
     "express": "^5.2.1",
     "serverless-http": "^4.0.0"
   }
