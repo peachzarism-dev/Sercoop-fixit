@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบหลังบ้าน - จัดการงานแจ้งซ่อม</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        * { box-sizing: border-box; font-family: 'Sarabun', sans-serif; margin: 0; padding: 0; }
+        body { background-color: #f1f5f9; color: #334155; padding: 20px; }
+        .container { max-width: 1000px; margin: 0 auto; }
+        
+        .header { background: #ffffff; padding: 20px 24px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+        .header h1 { font-size: 22px; color: #0f172a; }
+        
+        .filter-bar { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+        .filter-btn { padding: 8px 16px; border: 1px solid #cbd5e1; background: #ffffff; border-radius: 8px; cursor: pointer; font-weight: 500; font-size: 14px; color: #64748b; transition: all 0.2s; }
+        .filter-btn.active { background: #00b900; color: white; border-color: #00b900; }
+
+        .ticket-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); gap: 16px; }
+        .ticket-card { background: #ffffff; border-radius: 12px; padding: 18px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; display: flex; flex-direction: column; justify-content: space-between; }
+        
+        .card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+        .room-badge { background: #e0f2fe; color: #0369a1; padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 13px; }
+        .type-badge { font-weight: 600; font-size: 15px; color: #1e293b; }
+        
+        .ticket-detail { font-size: 14px; color: #475569; background: #f8fafc; padding: 10px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #f1f5f9; }
+        
+        .meta-info { font-size: 12px; color: #64748b; margin-bottom: 12px; display: flex; flex-direction: column; gap: 4px; }
+        
+        .action-area { border-top: 1px solid #f1f5f9; padding-top: 12px; margin-top: auto; }
+        
+        select, input { width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; margin-bottom: 8px; outline: none; }
+        select:focus, input:focus { border-color: #00b900; }
+        
+        .btn { width: 100%; padding: 8px; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.2s; }
+        .btn-accept { background: #00b900; color: white; }
+        .btn-accept:hover { background: #009900; }
+        .btn-update { background: #3b82f6; color: white; }
+        .btn-update:hover { background: #2563eb; }
+
+        .status-tag { display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+        .status-new { background: #fef3c7; color: #b45309; }
+        .status-accepted { background: #dbeafe; color: #1d4ed8; }
+        .status-fixing { background: #e0e7ff; color: #4338ca; }
+        .status-done { background: #dcfce7; color: #15803d; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="header">
+            <h1>🛠️ ระบบหลังบ้าน - จัดการงานแจ้งซ่อม</h1>
+            <button class="filter-btn" onclick="loadTickets()">🔄 รีเฟรชข้อมูล</button>
+        </div>
+
+        <!-- ตัวกรองสถานะ -->
+        <div class="filter-bar">
+            <button class="filter-btn active" onclick="filterTickets('ALL', this)">ทั้งหมด</button>
+            <button class="filter-btn" onclick="filterTickets('แจ้งเรื่อง', this)">แจ้งเรื่องใหม่</button>
+            <button class="filter-btn" onclick="filterTickets('รับเรื่องแล้ว', this)">รับเรื่องแล้ว</button>
+            <button class="filter-btn" onclick="filterTickets('กำลังซ่อม', this)">กำลังซ่อม</button>
+            <button class="filter-btn" onclick="filterTickets('ซ่อมเสร็จสิ้น', this)">ซ่อมเสร็จสิ้น</button>
+        </div>
+
+        <!-- รายการใบแจ้งซ่อม -->
+        <div id="ticketContainer" class="ticket-grid">
+            <p style="color: #64748b;">กำลังโหลดข้อมูล...</p>
+        </div>
+    </div>
+
+    <script>
+        let currentFilter = 'ALL';
+        let allTickets = [];
+
+        function formatThaiDateTime(isoString) {
+            if (!isoString) return "-";
+            const date = new Date(isoString);
+            return date.toLocaleDateString('th-TH', {
+                day: 'numeric', month: 'short', year: '2-digit',
+                hour: '2-digit', minute: '2-digit'
+            }) + " น.";
+        }
+
+        async function loadTickets() {
+            try {
+                const res = await fetch(`/api/admin/repairs?status=${currentFilter}`);
+                const data = await res.json();
+                
+                if (data.success) {
+                    allTickets = data.tickets;
+                    renderTickets(allTickets);
+                }
+            } catch (err) {
+                console.error("Fetch error:", err);
+                document.getElementById('ticketContainer').innerHTML = `<p style="color:red;">เกิดข้อผิดพลาดในการโหลดข้อมูล</p>`;
+            }
+        }
+
+        function filterTickets(status, btnElement) {
+            currentFilter = status;
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            btnElement.classList.add('active');
+            loadTickets();
+        }
+
+        function getStatusBadge(status) {
+            if (status === 'แจ้งเรื่อง') return `<span class="status-tag status-new">แจ้งเรื่องใหม่</span>`;
+            if (status === 'รับเรื่องแล้ว' || status === 'รอช่างตรวจสอบ') return `<span class="status-tag status-accepted">รับเรื่องแล้ว</span>`;
+            if (status === 'กำลังซ่อม' || status === 'กำลังดำเนินการ') return `<span class="status-tag status-fixing">กำลังซ่อม</span>`;
+            if (status === 'ซ่อมเสร็จสิ้น') return `<span class="status-tag status-done">ซ่อมเสร็จสิ้น</span>`;
+            return `<span class="status-tag">${status}</span>`;
+        }
+
+        function renderTickets(tickets) {
+            const container = document.getElementById('ticketContainer');
+            container.innerHTML = '';
+
+            if (tickets.length === 0) {
+                container.innerHTML = '<p style="color: #64748b; grid-column: 1/-1; text-align: center; padding: 40px 0;">ไม่พบรายการแจ้งซ่อม</p>';
+                return;
+            }
+
+            tickets.forEach(ticket => {
+                const card = document.createElement('div');
+                card.className = 'ticket-card';
+
+                const isAccepted = !!ticket.acceptedBy;
+
+                card.innerHTML = `
+                    <div>
+                        <div class="card-header">
+                            <span class="room-badge">🚪 ห้อง ${ticket.room}</span>
+                            ${getStatusBadge(ticket.status)}
+                        </div>
+                        <div class="type-badge">🛠️ ${ticket.type}</div>
+                        <div class="ticket-detail">${ticket.detail}</div>
+                        
+                        <div class="meta-info">
+                            <div>📅 <strong>แจ้งเมื่อ:</strong> ${formatThaiDateTime(ticket.createdAt)}</div>
+                            <div>👨‍🔧 <strong>ผู้รับเรื่อง:</strong> ${ticket.acceptedBy || '<span style="color:#f59e0b;">ยังไม่มีผู้รับเรื่อง</span>'}</div>
+                            <div>⏰ <strong>เวลารับเรื่อง:</strong> ${formatThaiDateTime(ticket.acceptedAt)}</div>
+                        </div>
+                    </div>
+
+                    <div class="action-area">
+                        ${!isAccepted ? `
+                            <input type="text" id="staffName-${ticket.id}" placeholder="กรอกชื่อเจ้าหน้าที่/ช่าง...">
+                            <button class="btn btn-accept" onclick="acceptTicket(${ticket.id})">✅ กดรับเรื่อง</button>
+                        ` : `
+                            <select id="statusSelect-${ticket.id}">
+                                <option value="รับเรื่องแล้ว" ${ticket.status === 'รับเรื่องแล้ว' ? 'selected' : ''}>รับเรื่องแล้ว</option>
+                                <option value="กำลังซ่อม" ${ticket.status === 'กำลังซ่อม' ? 'selected' : ''}>กำลังซ่อม</option>
+                                <option value="ซ่อมเสร็จสิ้น" ${ticket.status === 'ซ่อมเสร็จสิ้น' ? 'selected' : ''}>ซ่อมเสร็จสิ้น</option>
+                            </select>
+                            <button class="btn btn-update" onclick="updateStatus(${ticket.id})">💾 อัปเดตสถานะ</button>
+                        `}
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // กดรับเรื่อง
+        async function acceptTicket(ticketId) {
+            const staffNameInput = document.getElementById(`staffName-${ticketId}`);
+            const staffName = staffNameInput.value.trim();
+
+            if (!staffName) {
+                alert('กรุณากรอกชื่อเจ้าหน้าที่ผู้รับเรื่องก่อนครับ');
+                return;
+            }
+
+            const res = await fetch('/api/admin/update-repair', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    ticketId: ticketId,
+                    acceptedBy: staffName,
+                    status: 'รับเรื่องแล้ว'
+                })
+            });
+
+            const result = await res.json();
+            if (result.success) {
+                alert('รับเรื่องเรียบร้อยแล้ว!');
+                loadTickets();
+            } else {
+                alert('เกิดข้อผิดพลาด: ' + result.message);
+            }
+        }
+
+        // อัปเดตสถานะงานซ่อม
+        async function updateStatus(ticketId) {
+            const statusSelect = document.getElementById(`statusSelect-${ticketId}`);
+            const newStatus = statusSelect.value;
+
+            const res = await fetch('/api/admin/update-repair', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    ticketId: ticketId,
+                    status: newStatus
+                })
+            });
+
+            const result = await res.json();
+            if (result.success) {
+                alert('อัปเดตสถานะเรียบร้อย!');
+                loadTickets();
+            } else {
+                alert('เกิดข้อผิดพลาด: ' + result.message);
+            }
+        }
+
+        // โหลดข้อมูลเมื่อเปิดหน้าเว็บ
+        loadTickets();
+    </script>
+</body>
+</html>

@@ -57,22 +57,25 @@ router.post('/link-account', async (req, res) => {
 });
 
 // 3. ดึงรายการแจ้งซ่อมของห้องนั้นๆ
+// ดึงรายการแจ้งซ่อมของห้องนั้นๆ (อัปเดตส่งวันเวลาและผู้รับเรื่อง)
 router.get('/room-repairs', async (req, res) => {
     const { room } = req.query;
     const { data, error } = await supabase
         .from('repair_tickets')
         .select('*')
         .eq('room_number', room)
-        .order('created_at', { ascending: false }); // เรียงจากรายการใหม่สุดขึ้นก่อน
+        .order('created_at', { ascending: false });
 
     if (error) return res.json({ tickets: [] });
 
-    // แปลงรูปแบบข้อมูลให้ตรงกับที่หน้าบ้าน (Frontend) ต้องการ
     const formattedTickets = data.map(t => ({
         id: t.id,
         type: t.repair_type,
         detail: t.details,
-        status: t.status
+        status: t.status,
+        createdAt: t.created_at,        // วันเวลาที่แจ้งซ่อม
+        acceptedBy: t.accepted_by,      // ชื่อช่าง/เจ้าหน้าที่ที่รับเรื่อง
+        acceptedAt: t.accepted_at       // วันเวลาที่รับเรื่อง
     }));
     res.json({ tickets: formattedTickets });
 });
@@ -89,6 +92,78 @@ router.post('/submit-repair', async (req, res) => {
     } else {
         res.json({ success: true });
     }
+});
+
+// ==================== ADMIN BACKEND API ====================
+
+// 1. ดึงรายการแจ้งซ่อมทั้งหมด (สำหรับหน้า Admin)
+router.get('/admin/repairs', async (req, res) => {
+    const { status } = req.query; // รับตัวกรองสถานะ (ถ้ามี)
+
+    let query = supabase
+        .from('repair_tickets')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+    if (status && status !== 'ALL') {
+        query = query.eq('status', status);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+        return res.status(500).json({ success: false, message: error.message });
+    }
+
+    const formattedData = data.map(t => ({
+        id: t.id,
+        room: t.room_number,
+        type: t.repair_type,
+        detail: t.details,
+        status: t.status,
+        createdAt: t.created_at,
+        acceptedBy: t.accepted_by,
+        acceptedAt: t.accepted_at
+    }));
+
+    res.json({ success: true, tickets: formattedData });
+});
+
+// 2. อัปเดตสถานะ และ/หรือ บันทึกผู้รับเรื่อง
+router.post('/admin/update-repair', async (req, res) => {
+    const { ticketId, status, acceptedBy } = req.body;
+
+    if (!ticketId) {
+        return res.status(400).json({ success: false, message: "กรุณาระบุ ticketId" });
+    }
+
+    // เตรียมข้อมูลที่จะอัปเดต
+    const updatePayload = {};
+
+    if (status) {
+        updatePayload.status = status;
+    }
+
+    // หากมีการส่งชื่อผู้รับเรื่องมา ให้บันทึกเวลาที่รับเรื่อง (accepted_at) อัตโนมัติ
+    if (acceptedBy) {
+        updatePayload.accepted_by = acceptedBy;
+        updatePayload.accepted_at = new Date().toISOString();
+        if (!status) {
+            updatePayload.status = "รับเรื่องแล้ว"; // ตั้งสถานะเริ่มต้นเมื่อมีคนกดรับเรื่อง
+        }
+    }
+
+    const { data, error } = await supabase
+        .from('repair_tickets')
+        .update(updatePayload)
+        .eq('id', ticketId)
+        .select();
+
+    if (error) {
+        return res.status(500).json({ success: false, message: error.message });
+    }
+
+    res.json({ success: true, message: "อัปเดตข้อมูลสำเร็จ", updatedTicket: data[0] });
 });
 
 app.use('/.netlify/functions/api', router);
