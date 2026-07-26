@@ -94,42 +94,27 @@ router.post('/submit-repair', async (req, res) => {
     }
 });
 
-// ==================== ADMIN BACKEND API ====================
+// ==================== STAFF AUTH & ADMIN API ====================
 
-// 1. ดึงรายการแจ้งซ่อมทั้งหมด (สำหรับหน้า Admin)
-router.get('/admin/repairs', async (req, res) => {
-    const { status } = req.query; // รับตัวกรองสถานะ (ถ้ามี)
+// 1. API สำหรับ Login เจ้าหน้าที่/ช่างซ่อม
+router.post('/admin/login', async (req, res) => {
+    const { username, password } = req.body;
 
-    let query = supabase
-        .from('repair_tickets')
-        .select('*')
-        .order('created_at', { ascending: false });
+    const { data, error } = await supabase
+        .from('staff_users')
+        .select('id, username, full_name, role')
+        .eq('username', username)
+        .eq('password', password)
+        .single();
 
-    if (status && status !== 'ALL') {
-        query = query.eq('status', status);
+    if (error || !data) {
+        return res.status(401).json({ success: false, message: 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง' });
     }
 
-    const { data, error } = await query;
-
-    if (error) {
-        return res.status(500).json({ success: false, message: error.message });
-    }
-
-    const formattedData = data.map(t => ({
-        id: t.id,
-        room: t.room_number,
-        type: t.repair_type,
-        detail: t.details,
-        status: t.status,
-        createdAt: t.created_at,
-        acceptedBy: t.accepted_by,
-        acceptedAt: t.accepted_at
-    }));
-
-    res.json({ success: true, tickets: formattedData });
+    res.json({ success: true, user: data });
 });
 
-// 2. อัปเดตสถานะ และ/หรือ บันทึกผู้รับเรื่อง
+// 2. อัปเดตสถานะ / กดรับเรื่อง (รับชื่อผู้รับเรื่องจาก Session หน้าบ้าน)
 router.post('/admin/update-repair', async (req, res) => {
     const { ticketId, status, acceptedBy } = req.body;
 
@@ -137,19 +122,18 @@ router.post('/admin/update-repair', async (req, res) => {
         return res.status(400).json({ success: false, message: "กรุณาระบุ ticketId" });
     }
 
-    // เตรียมข้อมูลที่จะอัปเดต
     const updatePayload = {};
 
     if (status) {
         updatePayload.status = status;
     }
 
-    // หากมีการส่งชื่อผู้รับเรื่องมา ให้บันทึกเวลาที่รับเรื่อง (accepted_at) อัตโนมัติ
+    // หากมีการส่งชื่อคนกดรับเรื่องมา (ดึงจากคนที่ Login อยู่)
     if (acceptedBy) {
         updatePayload.accepted_by = acceptedBy;
         updatePayload.accepted_at = new Date().toISOString();
         if (!status) {
-            updatePayload.status = "รับเรื่องแล้ว"; // ตั้งสถานะเริ่มต้นเมื่อมีคนกดรับเรื่อง
+            updatePayload.status = "รับเรื่องแล้ว";
         }
     }
 

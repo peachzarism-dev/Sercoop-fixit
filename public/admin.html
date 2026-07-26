@@ -13,11 +13,18 @@
         body { background-color: #f1f5f9; color: #334155; padding: 20px; }
         .container { max-width: 1000px; margin: 0 auto; }
         
-        .header { background: #ffffff; padding: 20px 24px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
-        .header h1 { font-size: 22px; color: #0f172a; }
+        /* Login Box Style */
+        .login-card { max-width: 400px; margin: 80px auto; background: #ffffff; padding: 30px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+        .login-card h2 { font-size: 20px; margin-bottom: 20px; text-align: center; color: #0f172a; }
         
+        .header { background: #ffffff; padding: 20px 24px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+        .header h1 { font-size: 20px; color: #0f172a; }
+        
+        .user-info { display: flex; align-items: center; gap: 12px; }
+        .btn-logout { background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; }
+
         .filter-bar { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
-        .filter-btn { padding: 8px 16px; border: 1px solid #cbd5e1; background: #ffffff; border-radius: 8px; cursor: pointer; font-weight: 500; font-size: 14px; color: #64748b; transition: all 0.2s; }
+        .filter-btn { padding: 8px 16px; border: 1px solid #cbd5e1; background: #ffffff; border-radius: 8px; cursor: pointer; font-weight: 500; font-size: 14px; color: #64748b; }
         .filter-btn.active { background: #00b900; color: white; border-color: #00b900; }
 
         .ticket-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); gap: 16px; }
@@ -26,21 +33,14 @@
         .card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
         .room-badge { background: #e0f2fe; color: #0369a1; padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 13px; }
         .type-badge { font-weight: 600; font-size: 15px; color: #1e293b; }
-        
-        .ticket-detail { font-size: 14px; color: #475569; background: #f8fafc; padding: 10px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #f1f5f9; }
-        
+        .ticket-detail { font-size: 14px; color: #475569; background: #f8fafc; padding: 10px; border-radius: 8px; margin-bottom: 12px; }
         .meta-info { font-size: 12px; color: #64748b; margin-bottom: 12px; display: flex; flex-direction: column; gap: 4px; }
-        
         .action-area { border-top: 1px solid #f1f5f9; padding-top: 12px; margin-top: auto; }
         
-        select, input { width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; margin-bottom: 8px; outline: none; }
-        select:focus, input:focus { border-color: #00b900; }
-        
-        .btn { width: 100%; padding: 8px; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.2s; }
-        .btn-accept { background: #00b900; color: white; }
-        .btn-accept:hover { background: #009900; }
+        input, select { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; margin-bottom: 12px; outline: none; }
+        .btn { width: 100%; padding: 10px; border: none; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; }
+        .btn-primary { background: #00b900; color: white; }
         .btn-update { background: #3b82f6; color: white; }
-        .btn-update:hover { background: #2563eb; }
 
         .status-tag { display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
         .status-new { background: #fef3c7; color: #b45309; }
@@ -51,13 +51,24 @@
 </head>
 <body>
 
-    <div class="container">
+    <!-- 1. หน้าจอ LOGIN (แสดงเมื่อยังไม่ได้เล็อกอิน) -->
+    <div id="loginSection" class="login-card">
+        <h2>🔒 เข้าสู่ระบบเจ้าหน้าที่ / ช่างซ่อม</h2>
+        <input type="text" id="loginUsername" placeholder="ชื่อผู้ใช้งาน (Username)">
+        <input type="password" id="loginPassword" placeholder="รหัสผ่าน (Password)">
+        <button class="btn btn-primary" onclick="handleLogin()">เข้าสู่ระบบ</button>
+    </div>
+
+    <!-- 2. หน้าแดชบอร์ดจัดการงาน (แสดงเมื่อ Login สำเร็จ) -->
+    <div id="mainSection" class="container" style="display: none;">
         <div class="header">
-            <h1>🛠️ ระบบหลังบ้าน - จัดการงานแจ้งซ่อม</h1>
-            <button class="filter-btn" onclick="loadTickets()">🔄 รีเฟรชข้อมูล</button>
+            <h1>🛠️ ระบบจัดการงานแจ้งซ่อม</h1>
+            <div class="user-info">
+                <span style="font-size: 14px; font-weight: 600;">👤 <span id="staffDisplayName"></span></span>
+                <button class="btn-logout" onclick="handleLogout()">ออกจากระบบ</button>
+            </div>
         </div>
 
-        <!-- ตัวกรองสถานะ -->
         <div class="filter-bar">
             <button class="filter-btn active" onclick="filterTickets('ALL', this)">ทั้งหมด</button>
             <button class="filter-btn" onclick="filterTickets('แจ้งเรื่อง', this)">แจ้งเรื่องใหม่</button>
@@ -66,15 +77,57 @@
             <button class="filter-btn" onclick="filterTickets('ซ่อมเสร็จสิ้น', this)">ซ่อมเสร็จสิ้น</button>
         </div>
 
-        <!-- รายการใบแจ้งซ่อม -->
-        <div id="ticketContainer" class="ticket-grid">
-            <p style="color: #64748b;">กำลังโหลดข้อมูล...</p>
-        </div>
+        <div id="ticketContainer" class="ticket-grid"></div>
     </div>
 
     <script>
+        let currentUser = null;
         let currentFilter = 'ALL';
-        let allTickets = [];
+
+        // ตรวจสอบ Session การล็อกอินเมื่อเปิดหน้าเว็บ
+        window.onload = function() {
+            const savedUser = localStorage.getItem('staffUser');
+            if (savedUser) {
+                currentUser = JSON.parse(savedUser);
+                showDashboard();
+            }
+        };
+
+        async function handleLogin() {
+            const u = document.getElementById('loginUsername').value;
+            const p = document.getElementById('loginPassword').value;
+
+            if (!u || !p) return alert('กรุณากรอก Username และ Password');
+
+            const res = await fetch('/api/admin/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: u, password: p })
+            });
+
+            const data = await res.json();
+            if (data.success) {
+                currentUser = data.user;
+                localStorage.setItem('staffUser', JSON.stringify(currentUser));
+                showDashboard();
+            } else {
+                alert(data.message);
+            }
+        }
+
+        function handleLogout() {
+            localStorage.removeItem('staffUser');
+            currentUser = null;
+            document.getElementById('loginSection').style.display = 'block';
+            document.getElementById('mainSection').style.display = 'none';
+        }
+
+        function showDashboard() {
+            document.getElementById('loginSection').style.display = 'none';
+            document.getElementById('mainSection').style.display = 'block';
+            document.getElementById('staffDisplayName').innerText = currentUser.full_name;
+            loadTickets();
+        }
 
         function formatThaiDateTime(isoString) {
             if (!isoString) return "-";
@@ -86,18 +139,9 @@
         }
 
         async function loadTickets() {
-            try {
-                const res = await fetch(`/api/admin/repairs?status=${currentFilter}`);
-                const data = await res.json();
-                
-                if (data.success) {
-                    allTickets = data.tickets;
-                    renderTickets(allTickets);
-                }
-            } catch (err) {
-                console.error("Fetch error:", err);
-                document.getElementById('ticketContainer').innerHTML = `<p style="color:red;">เกิดข้อผิดพลาดในการโหลดข้อมูล</p>`;
-            }
+            const res = await fetch(`/api/admin/repairs?status=${currentFilter}`);
+            const data = await res.json();
+            if (data.success) renderTickets(data.tickets);
         }
 
         function filterTickets(status, btnElement) {
@@ -127,7 +171,6 @@
             tickets.forEach(ticket => {
                 const card = document.createElement('div');
                 card.className = 'ticket-card';
-
                 const isAccepted = !!ticket.acceptedBy;
 
                 card.innerHTML = `
@@ -148,8 +191,8 @@
 
                     <div class="action-area">
                         ${!isAccepted ? `
-                            <input type="text" id="staffName-${ticket.id}" placeholder="กรอกชื่อเจ้าหน้าที่/ช่าง...">
-                            <button class="btn btn-accept" onclick="acceptTicket(${ticket.id})">✅ กดรับเรื่อง</button>
+                            <!-- ปุ่มกดรับเรื่องเดี่ยวๆ ไม่ต้องกรอกชื่อแล้ว -->
+                            <button class="btn btn-primary" onclick="acceptTicket(${ticket.id})">🖐️ กดรับเรื่องนี้</button>
                         ` : `
                             <select id="statusSelect-${ticket.id}">
                                 <option value="รับเรื่องแล้ว" ${ticket.status === 'รับเรื่องแล้ว' ? 'selected' : ''}>รับเรื่องแล้ว</option>
@@ -164,60 +207,41 @@
             });
         }
 
-        // กดรับเรื่อง
+        // กดรับเรื่อง -> ดึงชื่อ currentUser.full_name บันทึกลงฐานข้อมูลทันที
         async function acceptTicket(ticketId) {
-            const staffNameInput = document.getElementById(`staffName-${ticketId}`);
-            const staffName = staffNameInput.value.trim();
-
-            if (!staffName) {
-                alert('กรุณากรอกชื่อเจ้าหน้าที่ผู้รับเรื่องก่อนครับ');
-                return;
-            }
-
             const res = await fetch('/api/admin/update-repair', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     ticketId: ticketId,
-                    acceptedBy: staffName,
+                    acceptedBy: currentUser.full_name, // ดึงชื่อคนที่ Login อยู่
                     status: 'รับเรื่องแล้ว'
                 })
             });
 
             const result = await res.json();
             if (result.success) {
-                alert('รับเรื่องเรียบร้อยแล้ว!');
+                alert(`รับเรื่องสำเร็จ! บันทึกชื่อผู้รับเรื่องเป็น: ${currentUser.full_name}`);
                 loadTickets();
             } else {
                 alert('เกิดข้อผิดพลาด: ' + result.message);
             }
         }
 
-        // อัปเดตสถานะงานซ่อม
         async function updateStatus(ticketId) {
-            const statusSelect = document.getElementById(`statusSelect-${ticketId}`);
-            const newStatus = statusSelect.value;
-
+            const newStatus = document.getElementById(`statusSelect-${ticketId}`).value;
             const res = await fetch('/api/admin/update-repair', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    ticketId: ticketId,
-                    status: newStatus
-                })
+                body: JSON.stringify({ ticketId: ticketId, status: newStatus })
             });
 
             const result = await res.json();
             if (result.success) {
                 alert('อัปเดตสถานะเรียบร้อย!');
                 loadTickets();
-            } else {
-                alert('เกิดข้อผิดพลาด: ' + result.message);
             }
         }
-
-        // โหลดข้อมูลเมื่อเปิดหน้าเว็บ
-        loadTickets();
     </script>
 </body>
 </html>
