@@ -99,7 +99,7 @@
 
             if (!u || !p) return alert('กรุณากรอก Username และ Password');
 
-            const res = await fetch('/.netlify/functions/api/admin/login', {
+            const res = await fetch('/api/admin/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ username: u, password: p })
@@ -139,10 +139,20 @@
         }
 
         async function loadTickets() {
-            const res = await fetch(`/.netlify/functions/api/admin/repairs?status=${currentFilter}`);
-            const data = await res.json();
-            if (data.success) renderTickets(data.tickets);
+    try {
+        // ใช้ /api/admin/repairs ได้เลย
+        const res = await fetch(`/api/admin/repairs?status=${currentFilter}`);
+        const data = await res.json();
+        
+        if (data.success) {
+            renderTickets(data.tickets);
+        } else {
+            console.error("API error:", data);
         }
+    } catch (err) {
+        console.error("Fetch Error:", err);
+    }
+}
 
         function filterTickets(status, btnElement) {
             currentFilter = status;
@@ -230,7 +240,7 @@
 
         async function updateStatus(ticketId) {
             const newStatus = document.getElementById(`statusSelect-${ticketId}`).value;
-            const res = await fetch('/.netlify/functions/api/admin/update-repair', {
+            const res = await fetch('/api/admin/update-repair', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ ticketId: ticketId, status: newStatus })
