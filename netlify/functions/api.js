@@ -20,6 +20,46 @@ if (!supabaseUrl || !supabaseKey) {
 
 const supabase = createClient(supabaseUrl || '', supabaseKey || '');
 
+// ==================== USER / FRONTEND ROUTES ====================
+
+// API ผูกบัญชี LINE กับเลขห้อง / สมาชิก
+router.post('/link-account', async (req, res) => {
+    try {
+        const { room, lineId } = req.body;
+
+        // ตรวจสอบค่าที่ส่งมา
+        if (!room || !lineId) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'กรุณากรอกข้อมูลให้ครบถ้วน (เลขห้อง และ LINE ID)' 
+            });
+        }
+
+        // ตัวอย่างการอัปเดตลงตาราง users หรือ residents ใน Supabase
+        // (ปรับชื่อตารางและชื่อ column ให้ตรงกับ Supabase ของคุณ)
+        const { data, error } = await supabase
+            .from('residents') 
+            .update({ line_user_id: lineId })
+            .eq('room_number', room)
+            .select();
+
+        if (error) {
+            console.error("Supabase Error:", error);
+            return res.status(500).json({ success: false, message: error.message });
+        }
+
+        if (!data || data.length === 0) {
+            return res.status(404).json({ success: false, message: 'ไม่พบข้อมูลห้องพักนี้ในระบบ' });
+        }
+
+        return res.json({ success: true, message: 'ผูกบัญชีสำเร็จ', user: data[0] });
+
+    } catch (err) {
+        console.error("Server Crash Error:", err);
+        return res.status(500).json({ success: false, message: 'เกิดข้อผิดพลาดภายในเซิร์ฟเวอร์' });
+    }
+});
+
 // ==================== ADMIN ROUTES ====================
 
 // 1. API Login
