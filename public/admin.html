@@ -99,7 +99,7 @@
 
             if (!u || !p) return alert('กรุณากรอก Username และ Password');
 
-            const res = await fetch('/api/admin/login', {
+            const res = await fetch('/.netlify/functions/api/admin/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ username: u, password: p })
@@ -139,7 +139,7 @@
         }
 
         async function loadTickets() {
-            const res = await fetch(`/api/admin/repairs?status=${currentFilter}`);
+            const res = await fetch(`/.netlify/functions/api/admin/repairs?status=${currentFilter}`);
             const data = await res.json();
             if (data.success) renderTickets(data.tickets);
         }
@@ -230,7 +230,7 @@
 
         async function updateStatus(ticketId) {
             const newStatus = document.getElementById(`statusSelect-${ticketId}`).value;
-            const res = await fetch('/api/admin/update-repair', {
+            const res = await fetch('/.netlify/functions/api/admin/update-repair', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ ticketId: ticketId, status: newStatus })
