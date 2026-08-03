@@ -3,355 +3,211 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบบริหารจัดการหอพัก - แจ้งซ่อม</title>
+    <title>ระบบบริหารจัดการหอพัก</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        * { box-sizing: border-box; font-family: 'Sarabun', sans-serif; margin: 0; padding: 0; }
-        body { background-color: #f8fafc; color: #334155; display: flex; min-height: 100vh; overflow-x: hidden; }
-
-        /* Login Layout */
-        .login-wrapper { width: 100%; display: flex; justify-content: center; align-items: center; min-height: 100vh; background: #f1f5f9; padding: 20px; }
-        .login-card { width: 100%; max-width: 400px; background: #ffffff; padding: 30px; border-radius: 16px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05); }
-        .login-card h2 { font-size: 20px; margin-bottom: 20px; text-align: center; color: #0f172a; }
-
-        /* Sidebar Style */
-        .sidebar { width: 260px; background: #1e293b; color: #f8fafc; display: flex; flex-direction: column; transition: all 0.3s ease; position: fixed; top: 0; bottom: 0; left: 0; z-index: 1000; }
-        .sidebar.collapsed { transform: translateX(-100%); }
-        .sidebar-header { padding: 20px; font-size: 18px; font-weight: 700; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; align-items: center; color: #38bdf8; }
-        .sidebar-menu { list-style: none; padding: 15px 10px; flex-grow: 1; }
-        .sidebar-menu li { margin-bottom: 6px; }
-        .sidebar-menu a { display: flex; align-items: center; gap: 12px; padding: 12px 16px; color: #94a3b8; text-decoration: none; border-radius: 8px; font-weight: 500; font-size: 15px; transition: 0.2s; }
-        .sidebar-menu a:hover, .sidebar-menu a.active { background: #0284c7; color: #ffffff; }
-        .sidebar-footer { padding: 16px; border-top: 1px solid #334155; font-size: 13px; color: #94a3b8; }
-
-        /* Main Content Layout */
-        .main-content { flex-grow: 1; margin-left: 260px; transition: all 0.3s ease; display: flex; flex-direction: column; width: calc(100% - 260px); min-height: 100vh; }
-        .main-content.expanded { margin-left: 0; width: 100%; }
-
-        /* Top Navbar */
-        .top-navbar { background: #ffffff; padding: 16px 24px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; sticky: top; top: 0; z-index: 900; }
-        .toggle-btn { background: none; border: none; font-size: 22px; cursor: pointer; color: #334155; padding: 4px 8px; border-radius: 6px; }
-        .toggle-btn:hover { background: #f1f5f9; }
-        .user-profile { display: flex; align-items: center; gap: 12px; font-size: 14px; font-weight: 600; }
-        .btn-logout { background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; }
-
-        /* Page Body */
-        .page-body { padding: 24px; max-width: 1200px; margin: 0 auto; width: 100%; }
-        .page-title { font-size: 22px; font-weight: 700; color: #0f172a; margin-bottom: 20px; }
-
-        /* Filters */
-        .filter-bar { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
-        .filter-btn { padding: 8px 16px; border: 1px solid #cbd5e1; background: #ffffff; border-radius: 8px; cursor: pointer; font-weight: 500; font-size: 14px; color: #64748b; }
-        .filter-btn.active { background: #0284c7; color: white; border-color: #0284c7; }
-
-        /* Cards Grid */
-        .ticket-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
-        .ticket-card { background: #ffffff; border-radius: 12px; padding: 18px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; display: flex; flex-direction: column; justify-content: space-between; }
-        .card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
-        .room-badge { background: #e0f2fe; color: #0369a1; padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 13px; }
-        .type-badge { font-weight: 600; font-size: 15px; color: #1e293b; }
-        .ticket-detail { font-size: 14px; color: #475569; background: #f8fafc; padding: 10px; border-radius: 8px; margin-bottom: 12px; min-height: 50px; }
-        .meta-info { font-size: 12px; color: #64748b; margin-bottom: 12px; display: flex; flex-direction: column; gap: 4px; }
-        .action-area { border-top: 1px solid #f1f5f9; padding-top: 12px; margin-top: auto; }
-
-        input, select { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; margin-bottom: 12px; outline: none; }
-        .btn { width: 100%; padding: 10px; border: none; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; }
-        .btn-primary { background: #16a34a; color: white; }
-        .btn-primary:hover { background: #15803d; }
-        .btn-update { background: #0284c7; color: white; }
-
-        .status-tag { display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
-        .status-new { background: #fef3c7; color: #b45309; }
-        .status-accepted { background: #dbeafe; color: #1d4ed8; }
-        .status-fixing { background: #e0e7ff; color: #4338ca; }
-        .status-done { background: #dcfce7; color: #15803d; }
-
-        /* Overlay Mobile */
-        .sidebar-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); z-index: 999; }
-
-        /* Responsive Breakpoints */
-        @media (max-width: 768px) {
-            .sidebar { transform: translateX(-100%); }
-            .sidebar.mobile-open { transform: translateX(0); }
-            .main-content { margin-left: 0; width: 100%; }
-            .sidebar-overlay.active { display: block; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: Sarabun, sans-serif; }
+        :root { --nav:#172033; --blue:#2563eb; --green:#16a34a; --border:#e2e8f0; --muted:#64748b; }
+        body { min-height:100vh; background:#f5f7fb; color:#1e293b; }
+        button, input, select { font:inherit; }
+        button { cursor:pointer; }
+        .login { min-height:100vh; display:grid; place-items:center; padding:20px; background:linear-gradient(135deg,#eaf2ff,#f8fafc); }
+        .login-card { width:min(400px,100%); padding:32px; background:#fff; border-radius:18px; box-shadow:0 18px 50px #1e293b18; }
+        .login-card h1 { font-size:22px; margin-bottom:6px; }
+        .login-card p { color:var(--muted); margin-bottom:22px; }
+        .field { margin-bottom:14px; }
+        .field label { display:block; font-size:13px; font-weight:600; margin-bottom:6px; }
+        input, select { width:100%; border:1px solid var(--border); border-radius:9px; padding:10px 12px; background:#fff; }
+        input:focus, select:focus { outline:3px solid #2563eb20; border-color:var(--blue); }
+        .btn { border:0; border-radius:9px; padding:10px 14px; font-weight:600; }
+        .btn-primary { background:var(--blue); color:#fff; }
+        .btn-success { background:var(--green); color:#fff; }
+        .btn-light { background:#eef2f7; color:#334155; }
+        .btn-sm { padding:7px 10px; font-size:13px; }
+        .btn:disabled { opacity:.55; cursor:not-allowed; }
+        .app { display:none; min-height:100vh; }
+        .sidebar { width:270px; position:fixed; inset:0 auto 0 0; background:var(--nav); color:#fff; padding:20px 14px; z-index:20; }
+        .brand { padding:6px 10px 22px; font-size:18px; font-weight:700; }
+        .nav { display:grid; gap:7px; }
+        .nav button { width:100%; border:0; background:transparent; color:#aebbd0; text-align:left; padding:12px 14px; border-radius:9px; font-weight:600; }
+        .nav button:hover, .nav button.active { color:#fff; background:#2563eb; }
+        .staff { position:absolute; left:24px; right:24px; bottom:22px; font-size:13px; color:#aebbd0; }
+        .main { margin-left:270px; min-height:100vh; }
+        .topbar { height:68px; background:#fff; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; padding:0 26px; position:sticky; top:0; z-index:10; }
+        .menu-toggle { display:none; border:0; background:#eef2f7; border-radius:8px; padding:8px 10px; }
+        .content { max-width:1280px; padding:28px; margin:auto; }
+        .section { display:none; }
+        .section.active { display:block; }
+        .page-head { display:flex; justify-content:space-between; align-items:flex-start; gap:14px; margin-bottom:22px; }
+        .page-head h2 { font-size:23px; }
+        .page-head p { color:var(--muted); font-size:14px; margin-top:4px; }
+        .filters { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:18px; }
+        .filter { border:1px solid var(--border); background:#fff; color:var(--muted); padding:8px 13px; border-radius:8px; }
+        .filter.active { background:var(--blue); color:#fff; border-color:var(--blue); }
+        .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(310px,1fr)); gap:15px; }
+        .card, .panel { background:#fff; border:1px solid var(--border); border-radius:13px; padding:18px; box-shadow:0 2px 10px #1e293b08; }
+        .ticket-head { display:flex; justify-content:space-between; gap:10px; margin-bottom:12px; }
+        .badge { display:inline-flex; padding:4px 9px; border-radius:999px; font-size:12px; font-weight:700; background:#e0f2fe; color:#0369a1; }
+        .status-new { background:#fef3c7; color:#a16207; } .status-accepted { background:#dbeafe; color:#1d4ed8; }
+        .status-fixing { background:#ede9fe; color:#6d28d9; } .status-done { background:#dcfce7; color:#15803d; }
+        .detail { margin:10px 0; padding:11px; border-radius:8px; background:#f8fafc; color:#475569; min-height:46px; }
+        .meta { display:grid; gap:5px; font-size:13px; color:var(--muted); margin-bottom:13px; }
+        .actions { display:flex; gap:8px; align-items:center; border-top:1px solid #f1f5f9; padding-top:13px; }
+        .actions select { margin:0; }
+        .actions .btn { white-space:nowrap; }
+        .split { display:grid; grid-template-columns:minmax(280px,360px) 1fr; gap:18px; align-items:start; }
+        .panel h3 { font-size:17px; margin-bottom:15px; }
+        .table-wrap { overflow:auto; }
+        table { width:100%; border-collapse:collapse; min-width:640px; }
+        th, td { padding:12px 10px; text-align:left; border-bottom:1px solid var(--border); font-size:14px; }
+        th { color:var(--muted); font-size:12px; text-transform:uppercase; }
+        .empty { text-align:center; color:#94a3b8; padding:45px 15px; grid-column:1/-1; }
+        .rate-grid { display:grid; grid-template-columns:repeat(2,minmax(280px,1fr)); gap:18px; }
+        .rate-title { font-size:18px; margin-bottom:5px; } .rate-note { color:var(--muted); font-size:13px; margin-bottom:18px; }
+        .toast { position:fixed; right:22px; bottom:22px; padding:13px 16px; color:#fff; background:#0f172a; border-radius:10px; box-shadow:0 8px 25px #0003; z-index:50; display:none; max-width:360px; }
+        .toast.error { background:#b91c1c; }
+        @media(max-width:850px){
+            .sidebar { transform:translateX(-100%); transition:.2s; } .sidebar.open { transform:none; }
+            .main { margin-left:0; } .menu-toggle { display:block; } .topbar { padding:0 16px; }
+            .content { padding:20px 15px; } .split, .rate-grid { grid-template-columns:1fr; }
+            .page-head { flex-direction:column; }
         }
     </style>
 </head>
 <body>
+    <section id="loginSection" class="login">
+        <form class="login-card" onsubmit="handleLogin(event)">
+            <h1>🏢 ระบบบริหารหอพัก</h1>
+            <p>เข้าสู่ระบบสำหรับเจ้าหน้าที่</p>
+            <div class="field"><label for="loginUsername">ชื่อผู้ใช้งาน</label><input id="loginUsername" required autocomplete="username"></div>
+            <div class="field"><label for="loginPassword">รหัสผ่าน</label><input id="loginPassword" type="password" required autocomplete="current-password"></div>
+            <button class="btn btn-primary" style="width:100%">เข้าสู่ระบบ</button>
+        </form>
+    </section>
 
-    <!-- Overlay สำหรับมือถือเวลาเปิดเมนู -->
-    <div id="sidebarOverlay" class="sidebar-overlay" onclick="toggleSidebar()"></div>
-
-    <!-- 1. LOGIN SECTION -->
-    <div id="loginSection" class="login-wrapper">
-        <div class="login-card">
-            <h2>🏢 ระบบบริหารจัดการหอพัก</h2>
-            <form onsubmit="handleLogin(event)">
-                <input type="text" id="loginUsername" placeholder="ชื่อผู้ใช้งาน (Username)" required>
-                <input type="password" id="loginPassword" placeholder="รหัสผ่าน (Password)" required>
-                <button type="submit" class="btn btn-primary">เข้าสู่ระบบ</button>
-            </form>
-        </div>
-    </div>
-
-    <!-- 2. MAIN DASHBOARD LAYOUT -->
-    <div id="mainLayout" style="display: none; width: 100%;">
-        
-        <!-- SIDEBAR MENU -->
+    <div id="app" class="app">
         <aside id="sidebar" class="sidebar">
-            <div class="sidebar-header">
-                <span>🏢 หอพัก Dashboard</span>
-                <button class="toggle-btn" style="color:white;" onclick="toggleSidebar()">✕</button>
-            </div>
-            <ul class="sidebar-menu">
-                <li><a href="#" class="active">🛠️ จัดการงานแจ้งซ่อม</a></li>
-                <li><a href="#" onclick="alert('ระบบห้องพักกำลังพัฒนา')">🚪 ข้อมูลห้องพัก</a></li>
-                <li><a href="#" onclick="alert('ระบบผู้เช่ากำลังพัฒนา')">👨‍🎓 ข้อมูลผู้เช่า / นักศึกษา</a></li>
-                <li><a href="#" onclick="alert('ระบบค่าน้ำค่าไฟกำลังพัฒนา')">📄 ค่าเช่า & ค่าน้ำ-ไฟ</a></li>
-            </ul>
-            <div class="sidebar-footer">
-                ล็อกอินโดย: <br><strong id="sidebarStaffName">-</strong>
-            </div>
-        </aside>
-
-        <!-- MAIN CONTENT AREA -->
-        <div id="mainContent" class="main-content">
-            
-            <!-- TOP NAVBAR -->
-            <nav class="top-navbar">
-                <button class="toggle-btn" onclick="toggleSidebar()">☰</button>
-                <div class="user-profile">
-                    👤 <span id="topStaffName"></span>
-                    <button class="btn-logout" onclick="handleLogout()">ออกจากระบบ</button>
-                </div>
+            <div class="brand">🏢 PSU Dorm Admin</div>
+            <nav class="nav">
+                <button class="active" data-page="repairs" onclick="showPage('repairs',this)">🛠️ จัดการงานแจ้งซ่อม</button>
+                <button data-page="students" onclick="showPage('students',this)">👨‍🎓 ข้อมูลผู้เช่า / นักศึกษา</button>
+                <button data-page="rooms" onclick="showPage('rooms',this)">🚪 ตั้งค่าห้องพัก</button>
+                <button data-page="utilities" onclick="showPage('utilities',this)">💧 ค่าเช่า ค่าน้ำ–ค่าไฟ</button>
             </nav>
+            <div class="staff">ล็อกอินโดย<br><strong id="sidebarStaffName">-</strong></div>
+        </aside>
+        <main class="main">
+            <header class="topbar">
+                <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+                <strong id="topTitle">จัดการงานแจ้งซ่อม</strong>
+                <button class="btn btn-light btn-sm" onclick="logout()">ออกจากระบบ</button>
+            </header>
+            <div class="content">
+                <section id="page-repairs" class="section active">
+                    <div class="page-head"><div><h2>งานแจ้งซ่อม</h2><p>รับเรื่องและอัปเดตสถานะงานของทุกห้อง</p></div></div>
+                    <div class="filters">
+                        <button class="filter active" onclick="filterTickets('ALL',this)">ทั้งหมด</button>
+                        <button class="filter" onclick="filterTickets('รอช่างตรวจสอบ',this)">รอรับเรื่อง</button>
+                        <button class="filter" onclick="filterTickets('รับเรื่องแล้ว',this)">รับเรื่องแล้ว</button>
+                        <button class="filter" onclick="filterTickets('กำลังซ่อม',this)">กำลังซ่อม</button>
+                        <button class="filter" onclick="filterTickets('ซ่อมเสร็จสิ้น',this)">เสร็จสิ้น</button>
+                    </div>
+                    <div id="ticketContainer" class="grid"></div>
+                </section>
 
-            <!-- PAGE CONTENT -->
-            <main class="page-body">
-                <div class="page-title">🛠️ รายการแจ้งซ่อมทั้งหมด</div>
+                <section id="page-students" class="section">
+                    <div class="page-head"><div><h2>ข้อมูลผู้เช่า / นักศึกษา</h2><p>เพิ่มผู้เช่าและกำหนดห้องพักเพื่อใช้ผูกบัญชี LINE</p></div></div>
+                    <div class="split">
+                        <form class="panel" onsubmit="saveStudent(event)">
+                            <h3 id="studentFormTitle">เพิ่มผู้เช่า</h3>
+                            <input id="editingStudentId" type="hidden">
+                            <div class="field"><label>รหัสนักศึกษา / รหัสผู้เช่า</label><input id="studentId" required></div>
+                            <div class="field"><label>ชื่อ–นามสกุล</label><input id="studentName" required></div>
+                            <div class="field"><label>เบอร์โทรศัพท์</label><input id="studentPhone" inputmode="tel"></div>
+                            <div class="field"><label>ห้องพัก</label><select id="studentRoom"><option value="">ยังไม่กำหนดห้อง</option></select></div>
+                            <div class="actions"><button class="btn btn-primary" type="submit">บันทึกข้อมูล</button><button id="cancelStudentEdit" class="btn btn-light" type="button" onclick="resetStudentForm()" style="display:none">ยกเลิก</button></div>
+                        </form>
+                        <div class="panel table-wrap"><table><thead><tr><th>รหัส</th><th>ชื่อผู้เช่า</th><th>ห้อง</th><th>LINE</th><th></th></tr></thead><tbody id="studentRows"></tbody></table></div>
+                    </div>
+                </section>
 
-                <!-- FILTER BAR -->
-                <div class="filter-bar">
-                    <button class="filter-btn active" onclick="filterTickets('ALL', this)">ทั้งหมด</button>
-                    <button class="filter-btn" onclick="filterTickets('แจ้งเรื่อง', this)">แจ้งเรื่องใหม่</button>
-                    <button class="filter-btn" onclick="filterTickets('รับเรื่องแล้ว', this)">รับเรื่องแล้ว</button>
-                    <button class="filter-btn" onclick="filterTickets('กำลังซ่อม', this)">กำลังซ่อม</button>
-                    <button class="filter-btn" onclick="filterTickets('ซ่อมเสร็จสิ้น', this)">ซ่อมเสร็จสิ้น</button>
-                </div>
+                <section id="page-rooms" class="section">
+                    <div class="page-head"><div><h2>ตั้งค่าห้องพัก</h2><p>เพิ่มห้องพักหรือร้านเช่า และกำหนดค่าเช่ารายเดือน</p></div></div>
+                    <div class="split">
+                        <form class="panel" onsubmit="saveRoom(event)">
+                            <h3 id="roomFormTitle">เพิ่มห้อง / ร้านเช่า</h3>
+                            <input id="editingRoomNumber" type="hidden">
+                            <div class="field"><label>เลขห้อง / รหัสร้าน</label><input id="roomNumber" required></div>
+                            <div class="field"><label>ประเภท</label><select id="roomType"><option value="residential">ห้องพัก</option><option value="shop">ร้านเช่า</option></select></div>
+                            <div class="field"><label>ค่าเช่ารายเดือน (บาท)</label><input id="monthlyRent" type="number" min="0" step="0.01" required></div>
+                            <div id="roomStatusField" class="field" style="display:none"><label>สถานะ</label><select id="roomStatus"><option value="available">ว่าง</option><option value="occupied">มีผู้เช่า</option><option value="maintenance">ปิดปรับปรุง</option></select></div>
+                            <div class="actions"><button class="btn btn-primary" type="submit">บันทึกห้อง</button><button id="cancelRoomEdit" class="btn btn-light" type="button" onclick="resetRoomForm()" style="display:none">ยกเลิก</button></div>
+                        </form>
+                        <div class="panel table-wrap"><table><thead><tr><th>ห้อง</th><th>ประเภท</th><th>ค่าเช่า</th><th>สถานะ</th><th></th></tr></thead><tbody id="roomRows"></tbody></table></div>
+                    </div>
+                </section>
 
-                <!-- CARDS CONTAINER -->
-                <div id="ticketContainer" class="ticket-grid"></div>
-            </main>
-        </div>
-
+                <section id="page-utilities" class="section">
+                    <div class="page-head"><div><h2>ตั้งค่าค่าน้ำ–ค่าไฟ</h2><p>กำหนดราคาต่อหน่วยแยกตามประเภทพื้นที่</p></div></div>
+                    <div class="rate-grid">
+                        <form class="panel" onsubmit="saveRate(event,'residential')"><div class="rate-title">🏠 สำหรับห้องพัก</div><div class="rate-note">อัตราที่ใช้คำนวณสำหรับห้องพักนักศึกษา</div><div class="field"><label>ค่าน้ำ (บาท / หน่วย)</label><input id="residentialWater" type="number" min="0" step="0.01" required></div><div class="field"><label>ค่าไฟ (บาท / หน่วย)</label><input id="residentialElectricity" type="number" min="0" step="0.01" required></div><button class="btn btn-primary">บันทึกอัตราห้องพัก</button></form>
+                        <form class="panel" onsubmit="saveRate(event,'shop')"><div class="rate-title">🏪 สำหรับร้านเช่า</div><div class="rate-note">อัตราที่ใช้คำนวณสำหรับพื้นที่ร้านค้า</div><div class="field"><label>ค่าน้ำ (บาท / หน่วย)</label><input id="shopWater" type="number" min="0" step="0.01" required></div><div class="field"><label>ค่าไฟ (บาท / หน่วย)</label><input id="shopElectricity" type="number" min="0" step="0.01" required></div><button class="btn btn-primary">บันทึกอัตราร้านเช่า</button></form>
+                    </div>
+                </section>
+            </div>
+        </main>
     </div>
+    <div id="toast" class="toast"></div>
 
     <script>
-        let currentUser = null;
-        let currentFilter = 'ALL';
+        let currentUser = null, currentFilter = 'ALL', students = [], rooms = [];
+        const titles = { repairs:'จัดการงานแจ้งซ่อม', students:'ข้อมูลผู้เช่า / นักศึกษา', rooms:'ตั้งค่าห้องพัก', utilities:'ค่าเช่า ค่าน้ำ–ค่าไฟ' };
+        const escapeHtml = value => String(value ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+        const money = value => Number(value || 0).toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2});
 
-        // เช็ค Session การล็อกอินเมื่อโหลดหน้า
-        window.onload = function() {
-            const savedUser = localStorage.getItem('staffUser');
-            if (savedUser) {
-                currentUser = JSON.parse(savedUser);
-                showDashboard();
-            }
-        };
-
-        // สลับเปิด-ปิด Sidebar Menu
-        function toggleSidebar() {
-            const sidebar = document.getElementById('sidebar');
-            const mainContent = document.getElementById('mainContent');
-            const overlay = document.getElementById('sidebarOverlay');
-
-            if (window.innerWidth <= 768) {
-                // สำหรับมือถือ
-                sidebar.classList.toggle('mobile-open');
-                overlay.classList.toggle('active');
-            } else {
-                // สำหรับหน้าจอคอมฯ
-                sidebar.classList.toggle('collapsed');
-                mainContent.classList.toggle('expanded');
-            }
+        async function api(url, options={}) {
+            const response = await fetch(url, { headers:{'Content-Type':'application/json',...(options.headers||{})}, ...options });
+            let data;
+            try { data = await response.json(); } catch { throw new Error('เซิร์ฟเวอร์ตอบกลับไม่ถูกต้อง'); }
+            if (!response.ok || data.success === false) throw new Error(data.message || 'ดำเนินการไม่สำเร็จ');
+            return data;
         }
+        function notify(message, error=false){ const el=document.getElementById('toast'); el.textContent=message; el.className='toast'+(error?' error':''); el.style.display='block'; clearTimeout(notify.timer); notify.timer=setTimeout(()=>el.style.display='none',3500); }
+        function setBusy(button,busy){ button.disabled=busy; if(busy){button.dataset.text=button.textContent;button.textContent='กำลังบันทึก...';}else if(button.dataset.text){button.textContent=button.dataset.text;} }
 
-        async function handleLogin(e) {
-            e.preventDefault();
-            const u = document.getElementById('loginUsername').value;
-            const p = document.getElementById('loginPassword').value;
+        window.addEventListener('DOMContentLoaded',()=>{ try { currentUser=JSON.parse(localStorage.getItem('staffUser')); } catch {} if(currentUser) openApp(); });
+        async function handleLogin(event){ event.preventDefault(); const button=event.submitter; setBusy(button,true); try { const data=await api('/api/admin/login',{method:'POST',body:JSON.stringify({username:loginUsername.value.trim(),password:loginPassword.value})}); currentUser=data.user; localStorage.setItem('staffUser',JSON.stringify(currentUser)); openApp(); } catch(error){notify(error.message,true);} finally{setBusy(button,false);} }
+        function openApp(){ loginSection.style.display='none'; app.style.display='block'; sidebarStaffName.textContent=currentUser.full_name; loadTickets(); }
+        function logout(){ localStorage.removeItem('staffUser'); location.reload(); }
+        function toggleSidebar(){ sidebar.classList.toggle('open'); }
+        function showPage(page,button){ document.querySelectorAll('.section').forEach(el=>el.classList.remove('active')); document.querySelectorAll('.nav button').forEach(el=>el.classList.remove('active')); document.getElementById('page-'+page).classList.add('active'); button.classList.add('active'); topTitle.textContent=titles[page]; sidebar.classList.remove('open'); if(page==='repairs')loadTickets(); if(page==='students')loadStudents(); if(page==='rooms')loadRooms(); if(page==='utilities')loadRates(); }
 
-            try {
-                const res = await fetch('/api/admin/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username: u, password: p })
-                });
+        function statusBadge(status){ let cls='status-new'; if(['รับเรื่องแล้ว','รอช่างตรวจสอบ'].includes(status))cls='status-accepted'; if(['กำลังซ่อม','กำลังดำเนินการ'].includes(status))cls='status-fixing'; if(status==='ซ่อมเสร็จสิ้น')cls='status-done'; return `<span class="badge ${cls}">${escapeHtml(status)}</span>`; }
+        function formatDate(value){ return value ? new Date(value).toLocaleString('th-TH',{dateStyle:'medium',timeStyle:'short'}) : '-'; }
+        async function loadTickets(){ ticketContainer.innerHTML='<div class="empty">กำลังโหลด...</div>'; try { const data=await api(`/api/admin/repairs?status=${encodeURIComponent(currentFilter)}`); renderTickets(data.tickets); } catch(error){ticketContainer.innerHTML=`<div class="empty">${escapeHtml(error.message)}</div>`;} }
+        function filterTickets(status,button){currentFilter=status;document.querySelectorAll('.filter').forEach(el=>el.classList.remove('active'));button.classList.add('active');loadTickets();}
+        function renderTickets(items){ if(!items?.length){ticketContainer.innerHTML='<div class="empty">ยังไม่มีรายการแจ้งซ่อม</div>';return;} ticketContainer.innerHTML=items.map(ticket=>{const accepted=!!ticket.acceptedBy;const id=JSON.stringify(ticket.id);return `<article class="card"><div class="ticket-head"><span class="badge">ห้อง ${escapeHtml(ticket.room)}</span>${statusBadge(ticket.status)}</div><strong>🛠️ ${escapeHtml(ticket.type)}</strong><div class="detail">${escapeHtml(ticket.detail||'-')}</div><div class="meta"><span>📅 แจ้งเมื่อ ${formatDate(ticket.createdAt)}</span><span>👨‍🔧 ผู้รับเรื่อง: ${escapeHtml(ticket.acceptedBy||'ยังไม่มีผู้รับเรื่อง')}</span><span>⏰ รับเมื่อ ${formatDate(ticket.acceptedAt)}</span></div><div class="actions">${accepted?`<select id="status-${ticket.id}"><option value="รับเรื่องแล้ว" ${ticket.status==='รับเรื่องแล้ว'?'selected':''}>รับเรื่องแล้ว</option><option value="กำลังซ่อม" ${ticket.status==='กำลังซ่อม'?'selected':''}>กำลังซ่อม</option><option value="ซ่อมเสร็จสิ้น" ${ticket.status==='ซ่อมเสร็จสิ้น'?'selected':''}>ซ่อมเสร็จสิ้น</option></select><button class="btn btn-primary btn-sm" onclick="updateStatus(${id},this)">อัปเดต</button>`:`<button class="btn btn-success" style="width:100%" onclick="acceptTicket(${id},this)">🖐️ รับเรื่องนี้</button>`}</div></article>`;}).join(''); }
+        async function acceptTicket(id,button){ if(!confirm(`ยืนยันรับเรื่องในนาม ${currentUser.full_name}?`))return; setBusy(button,true); try{await api('/api/admin/update-repair',{method:'POST',body:JSON.stringify({ticketId:id,acceptedBy:currentUser.full_name,status:'รับเรื่องแล้ว'})});notify('รับเรื่องเรียบร้อยแล้ว');await loadTickets();}catch(error){notify(error.message,true);setBusy(button,false);} }
+        async function updateStatus(id,button){setBusy(button,true);try{await api('/api/admin/update-repair',{method:'POST',body:JSON.stringify({ticketId:id,status:document.getElementById('status-'+id).value})});notify('อัปเดตสถานะแล้ว');await loadTickets();}catch(error){notify(error.message,true);setBusy(button,false);} }
 
-                const data = await res.json();
-                if (data.success) {
-                    currentUser = data.user;
-                    localStorage.setItem('staffUser', JSON.stringify(currentUser));
-                    showDashboard();
-                } else {
-                    alert(data.message || 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
-                }
-            } catch (err) {
-                alert('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
-            }
-        }
+        async function loadStudents(){ studentRows.innerHTML='<tr><td colspan="5">กำลังโหลด...</td></tr>'; try{const [studentData]=await Promise.all([api('/api/admin/students'),loadRooms(false)]);students=studentData.students;renderStudents();}catch(error){studentRows.innerHTML=`<tr><td colspan="5">${escapeHtml(error.message)}</td></tr>`;} }
+        function renderStudents(){studentRows.innerHTML=students.length?students.map((s,i)=>`<tr><td>${escapeHtml(s.student_id)}</td><td><strong>${escapeHtml(s.full_name)}</strong><br><small>${escapeHtml(s.phone||'-')}</small></td><td>${escapeHtml(s.room_number||'-')}</td><td>${s.line_user_id?'✅ ผูกแล้ว':'—'}</td><td><button class="btn btn-light btn-sm" onclick="editStudent(${i})">แก้ไข</button></td></tr>`).join(''):'<tr><td colspan="5">ยังไม่มีข้อมูลผู้เช่า</td></tr>';}
+        function fillRoomOptions(selected=''){studentRoom.innerHTML='<option value="">ยังไม่กำหนดห้อง</option>'+rooms.map(r=>`<option value="${escapeHtml(r.room_number)}" ${r.room_number===selected?'selected':''}>${escapeHtml(r.room_number)} · ${r.room_type==='shop'?'ร้านเช่า':'ห้องพัก'}</option>`).join('');}
+        async function saveStudent(event){event.preventDefault();const button=event.submitter,setId=editingStudentId.value;setBusy(button,true);try{const body=JSON.stringify({studentId:studentId.value.trim(),fullName:studentName.value.trim(),phone:studentPhone.value.trim(),roomNumber:studentRoom.value});await api(setId?`/api/admin/students/${encodeURIComponent(setId)}`:'/api/admin/students',{method:setId?'PUT':'POST',body});notify('บันทึกข้อมูลผู้เช่าแล้ว');resetStudentForm();await loadStudents();}catch(error){notify(error.message,true);}finally{setBusy(button,false);}}
+        function editStudent(index){const s=students[index];editingStudentId.value=s.student_id;studentId.value=s.student_id;studentId.disabled=true;studentName.value=s.full_name;studentPhone.value=s.phone||'';fillRoomOptions(s.room_number||'');studentFormTitle.textContent='แก้ไขผู้เช่า';cancelStudentEdit.style.display='inline-block';window.scrollTo({top:0,behavior:'smooth'});}
+        function resetStudentForm(){editingStudentId.value='';studentId.disabled=false;studentId.value='';studentName.value='';studentPhone.value='';fillRoomOptions();studentFormTitle.textContent='เพิ่มผู้เช่า';cancelStudentEdit.style.display='none';}
 
-        function handleLogout() {
-            localStorage.removeItem('staffUser');
-            currentUser = null;
-            document.getElementById('loginSection').style.display = 'flex';
-            document.getElementById('mainLayout').style.display = 'none';
-        }
+        async function loadRooms(render=true){if(render)roomRows.innerHTML='<tr><td colspan="5">กำลังโหลด...</td></tr>';const data=await api('/api/admin/rooms');rooms=data.rooms;fillRoomOptions(studentRoom?.value||'');if(render)renderRooms();return data;}
+        function roomStatusLabel(value){return {available:'ว่าง',occupied:'มีผู้เช่า',maintenance:'ปิดปรับปรุง'}[value]||value;}
+        function renderRooms(){roomRows.innerHTML=rooms.length?rooms.map((r,i)=>`<tr><td><strong>${escapeHtml(r.room_number)}</strong></td><td>${r.room_type==='shop'?'ร้านเช่า':'ห้องพัก'}</td><td>${money(r.monthly_rent)} บาท</td><td>${roomStatusLabel(r.status)}</td><td><button class="btn btn-light btn-sm" onclick="editRoom(${i})">แก้ไข</button></td></tr>`).join(''):'<tr><td colspan="5">ยังไม่มีห้องพัก</td></tr>';}
+        async function saveRoom(event){event.preventDefault();const button=event.submitter,number=editingRoomNumber.value;setBusy(button,true);try{const body=JSON.stringify({roomNumber:roomNumber.value.trim(),roomType:roomType.value,monthlyRent:monthlyRent.value,status:roomStatus.value});await api(number?`/api/admin/rooms/${encodeURIComponent(number)}`:'/api/admin/rooms',{method:number?'PUT':'POST',body});notify('บันทึกห้องพักแล้ว');resetRoomForm();await loadRooms();}catch(error){notify(error.message,true);}finally{setBusy(button,false);}}
+        function editRoom(index){const r=rooms[index];editingRoomNumber.value=r.room_number;roomNumber.value=r.room_number;roomNumber.disabled=true;roomType.value=r.room_type;monthlyRent.value=r.monthly_rent;roomStatus.value=r.status;roomStatusField.style.display='block';roomFormTitle.textContent='แก้ไขห้อง / ร้านเช่า';cancelRoomEdit.style.display='inline-block';window.scrollTo({top:0,behavior:'smooth'});}
+        function resetRoomForm(){editingRoomNumber.value='';roomNumber.disabled=false;roomNumber.value='';roomType.value='residential';monthlyRent.value='';roomStatus.value='available';roomStatusField.style.display='none';roomFormTitle.textContent='เพิ่มห้อง / ร้านเช่า';cancelRoomEdit.style.display='none';}
 
-        function showDashboard() {
-            document.getElementById('loginSection').style.display = 'none';
-            document.getElementById('mainLayout').style.display = 'flex';
-            document.getElementById('topStaffName').innerText = currentUser.full_name;
-            document.getElementById('sidebarStaffName').innerText = currentUser.full_name;
-            loadTickets();
-        }
-
-        function formatThaiDateTime(isoString) {
-            if (!isoString) return "-";
-            const date = new Date(isoString);
-            return date.toLocaleDateString('th-TH', {
-                day: 'numeric', month: 'short', year: '2-digit',
-                hour: '2-digit', minute: '2-digit'
-            }) + " น.";
-        }
-
-        async function loadTickets() {
-            try {
-                const res = await fetch(`/api/admin/repairs?status=${currentFilter}`);
-                const data = await res.json();
-                if (data.success) renderTickets(data.tickets);
-            } catch (err) {
-                console.error("Error loading tickets:", err);
-            }
-        }
-
-        function filterTickets(status, btnElement) {
-            currentFilter = status;
-            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
-            btnElement.classList.add('active');
-            loadTickets();
-        }
-
-        function getStatusBadge(status) {
-            if (status === 'แจ้งเรื่อง') return `<span class="status-tag status-new">แจ้งเรื่องใหม่</span>`;
-            if (status === 'รับเรื่องแล้ว' || status === 'รอช่างตรวจสอบ') return `<span class="status-tag status-accepted">รับเรื่องแล้ว</span>`;
-            if (status === 'กำลังซ่อม' || status === 'กำลังดำเนินการ') return `<span class="status-tag status-fixing">กำลังซ่อม</span>`;
-            if (status === 'ซ่อมเสร็จสิ้น') return `<span class="status-tag status-done">ซ่อมเสร็จสิ้น</span>`;
-            return `<span class="status-tag">${status}</span>`;
-        }
-
-        function renderTickets(tickets) {
-            const container = document.getElementById('ticketContainer');
-            container.innerHTML = '';
-
-            if (!tickets || tickets.length === 0) {
-                container.innerHTML = '<p style="color: #64748b; grid-column: 1/-1; text-align: center; padding: 40px 0;">ไม่พบรายการแจ้งซ่อม</p>';
-                return;
-            }
-
-            tickets.forEach(ticket => {
-                const card = document.createElement('div');
-                card.className = 'ticket-card';
-                const isAccepted = !!ticket.acceptedBy;
-
-                card.innerHTML = `
-                    <div>
-                        <div class="card-header">
-                            <span class="room-badge">🚪 ห้อง ${ticket.room}</span>
-                            ${getStatusBadge(ticket.status)}
-                        </div>
-                        <div class="type-badge">🛠️ ${ticket.type}</div>
-                        <div class="ticket-detail">${ticket.detail || '-'}</div>
-                        
-                        <div class="meta-info">
-                            <div>📅 <strong>แจ้งเมื่อ:</strong> ${formatThaiDateTime(ticket.createdAt)}</div>
-                            <div>👨‍🔧 <strong>ผู้รับเรื่อง:</strong> ${ticket.acceptedBy || '<span style="color:#f59e0b;">ยังไม่มีผู้รับเรื่อง</span>'}</div>
-                            <div>⏰ <strong>เวลารับเรื่อง:</strong> ${formatThaiDateTime(ticket.acceptedAt)}</div>
-                        </div>
-                    </div>
-
-                    <div class="action-area">
-                        ${!isAccepted ? `
-                            <button class="btn btn-primary" onclick="acceptTicket(${ticket.id})">🖐️ กดรับเรื่องนี้</button>
-                        ` : `
-                            <select id="statusSelect-${ticket.id}">
-                                <option value="รับเรื่องแล้ว" ${ticket.status === 'รับเรื่องแล้ว' ? 'selected' : ''}>รับเรื่องแล้ว</option>
-                                <option value="กำลังซ่อม" ${ticket.status === 'กำลังซ่อม' ? 'selected' : ''}>กำลังซ่อม</option>
-                                <option value="ซ่อมเสร็จสิ้น" ${ticket.status === 'ซ่อมเสร็จสิ้น' ? 'selected' : ''}>ซ่อมเสร็จสิ้น</option>
-                            </select>
-                            <button class="btn btn-update" onclick="updateStatus(${ticket.id})">💾 อัปเดตสถานะ</button>
-                        `}
-                    </div>
-                `;
-                container.appendChild(card);
-            });
-        }
-
-        // ฟังก์ชันกดรับเรื่อง (แก้ไขให้ส่งค่าชัวร์ 100%)
-        async function acceptTicket(ticketId) {
-            if (!currentUser || !currentUser.full_name) {
-                alert('กรุณาเข้าสู่ระบบใหม่อีกครั้ง');
-                return;
-            }
-
-            if (!confirm(`ยืนยันการรับเรื่องนี้ในนาม "${currentUser.full_name}" ?`)) return;
-
-            try {
-                const res = await fetch('/api/admin/update-repair', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        ticketId: ticketId,
-                        acceptedBy: currentUser.full_name,
-                        status: 'รับเรื่องแล้ว'
-                    })
-                });
-
-                const result = await res.json();
-                if (result.success) {
-                    alert('บันทึกการรับเรื่องเรียบร้อยแล้ว!');
-                    loadTickets();
-                } else {
-                    alert('ไม่สามารถรับเรื่องได้: ' + result.message);
-                }
-            } catch (err) {
-                alert('เกิดข้อผิดพลาดในการรับเรื่อง');
-                console.error(err);
-            }
-        }
-
-        async function updateStatus(ticketId) {
-            const newStatus = document.getElementById(`statusSelect-${ticketId}`).value;
-            try {
-                const res = await fetch('/api/admin/update-repair', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ ticketId: ticketId, status: newStatus })
-                });
-
-                const result = await res.json();
-                if (result.success) {
-                    alert('อัปเดตสถานะเรียบร้อย!');
-                    loadTickets();
-                }
-            } catch (err) {
-                alert('เกิดข้อผิดพลาดในการอัปเดตสถานะ');
-            }
-        }
+        async function loadRates(){try{const data=await api('/api/admin/utility-rates');data.rates.forEach(rate=>{const prefix=rate.property_type==='shop'?'shop':'residential';document.getElementById(prefix+'Water').value=rate.water_rate;document.getElementById(prefix+'Electricity').value=rate.electricity_rate;});}catch(error){notify(error.message,true);}}
+        async function saveRate(event,type){event.preventDefault();const button=event.submitter,prefix=type==='shop'?'shop':'residential';setBusy(button,true);try{await api('/api/admin/utility-rates/'+type,{method:'PUT',body:JSON.stringify({waterRate:document.getElementById(prefix+'Water').value,electricityRate:document.getElementById(prefix+'Electricity').value})});notify('บันทึกอัตราค่าน้ำ–ค่าไฟแล้ว');}catch(error){notify(error.message,true);}finally{setBusy(button,false);}}
     </script>
 </body>
 </html>

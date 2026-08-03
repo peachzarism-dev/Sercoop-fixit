@@ -310,24 +310,166 @@ router.get('/admin/repairs', async (req, res) => {
 
 // 3. API อัปเดตสถานะ / รับเรื่อง
 router.post('/admin/update-repair', async (req, res) => {
-    const { ticketId, status, acceptedBy } = req.body;
-    const updatePayload = {};
+    try {
+        const { ticketId, status, acceptedBy } = req.body;
+        if (!ticketId) {
+            return res.status(400).json({ success: false, message: 'ไม่พบเลขที่งานซ่อม' });
+        }
 
-    if (status) updatePayload.status = status;
-    if (acceptedBy) {
-        updatePayload.accepted_by = acceptedBy;
-        updatePayload.accepted_at = new Date().toISOString();
-        if (!status) updatePayload.status = "รับเรื่องแล้ว";
+        const updatePayload = {};
+        if (status) updatePayload.status = String(status).trim();
+        if (acceptedBy) {
+            updatePayload.accepted_by = String(acceptedBy).trim();
+            updatePayload.accepted_at = new Date().toISOString();
+            if (!status) updatePayload.status = 'รับเรื่องแล้ว';
+        }
+        if (Object.keys(updatePayload).length === 0) {
+            return res.status(400).json({ success: false, message: 'ไม่มีข้อมูลสำหรับอัปเดต' });
+        }
+
+        const { data, error } = await supabase
+            .from('repair_tickets')
+            .update(updatePayload)
+            .eq('id', ticketId)
+            .select('*')
+            .maybeSingle();
+
+        if (error) {
+            console.error('Update repair error:', error);
+            return res.status(500).json({
+                success: false,
+                message: 'อัปเดตงานไม่ได้ กรุณาตรวจสอบว่าได้เพิ่มคอลัมน์ผู้รับเรื่องในฐานข้อมูลแล้ว'
+            });
+        }
+        if (!data) {
+            return res.status(404).json({ success: false, message: 'ไม่พบงานแจ้งซ่อมนี้' });
+        }
+        return res.json({ success: true, message: 'อัปเดตสำเร็จ', updatedTicket: data });
+    } catch (err) {
+        console.error('Update repair crash:', err);
+        return res.status(500).json({ success: false, message: 'เกิดข้อผิดพลาดภายในเซิร์ฟเวอร์' });
+    }
+});
+
+// ข้อมูลผู้เช่า / นักศึกษา
+router.get('/admin/students', async (req, res) => {
+    const { data, error } = await supabase
+        .from('students')
+        .select('student_id, full_name, phone, room_number, line_user_id, created_at')
+        .order('student_id');
+    if (error) return res.status(500).json({ success: false, message: error.message });
+    return res.json({ success: true, students: data || [] });
+});
+
+router.post('/admin/students', async (req, res) => {
+    const studentId = String(req.body.studentId || '').trim();
+    const fullName = String(req.body.fullName || '').trim();
+    const phone = String(req.body.phone || '').trim() || null;
+    const roomNumber = String(req.body.roomNumber || '').trim() || null;
+    if (!studentId || !fullName) {
+        return res.status(400).json({ success: false, message: 'กรุณากรอกรหัสและชื่อผู้เช่า' });
+    }
+
+    if (roomNumber) {
+        const { data: room, error: roomError } = await supabase
+            .from('rooms').select('room_number').eq('room_number', roomNumber).maybeSingle();
+        if (roomError) return res.status(500).json({ success: false, message: roomError.message });
+        if (!room) return res.status(400).json({ success: false, message: 'ไม่พบห้องพักที่เลือก' });
     }
 
     const { data, error } = await supabase
-        .from('repair_tickets')
-        .update(updatePayload)
-        .eq('id', ticketId)
-        .select();
+        .from('students')
+        .insert([{ student_id: studentId, full_name: fullName, phone, room_number: roomNumber }])
+        .select().single();
+    if (error) {
+        const message = error.code === '23505' ? 'รหัสผู้เช่านี้มีอยู่แล้ว' : error.message;
+        return res.status(400).json({ success: false, message });
+    }
+    return res.status(201).json({ success: true, student: data });
+});
 
+router.put('/admin/students/:studentId', async (req, res) => {
+    const fullName = String(req.body.fullName || '').trim();
+    const phone = String(req.body.phone || '').trim() || null;
+    const roomNumber = String(req.body.roomNumber || '').trim() || null;
+    if (!fullName) return res.status(400).json({ success: false, message: 'กรุณากรอกชื่อผู้เช่า' });
+
+    const { data, error } = await supabase.from('students')
+        .update({ full_name: fullName, phone, room_number: roomNumber })
+        .eq('student_id', req.params.studentId).select().maybeSingle();
+    if (error) return res.status(400).json({ success: false, message: error.message });
+    if (!data) return res.status(404).json({ success: false, message: 'ไม่พบผู้เช่านี้' });
+    return res.json({ success: true, student: data });
+});
+
+// ตั้งค่าห้องพัก
+router.get('/admin/rooms', async (req, res) => {
+    const { data, error } = await supabase.from('rooms').select('*').order('room_number');
     if (error) return res.status(500).json({ success: false, message: error.message });
-    res.json({ success: true, message: "อัปเดตสำเร็จ", updatedTicket: data[0] });
+    return res.json({ success: true, rooms: data || [] });
+});
+
+router.post('/admin/rooms', async (req, res) => {
+    const roomNumber = String(req.body.roomNumber || '').trim();
+    const roomType = req.body.roomType === 'shop' ? 'shop' : 'residential';
+    const monthlyRent = Number(req.body.monthlyRent);
+    if (!roomNumber || !Number.isFinite(monthlyRent) || monthlyRent < 0) {
+        return res.status(400).json({ success: false, message: 'กรุณากรอกเลขห้องและค่าเช่าให้ถูกต้อง' });
+    }
+    const { data, error } = await supabase.from('rooms').insert([{
+        room_number: roomNumber,
+        room_type: roomType,
+        monthly_rent: monthlyRent,
+        status: 'available'
+    }]).select().single();
+    if (error) {
+        const message = error.code === '23505' ? 'เลขห้องนี้มีอยู่แล้ว' : error.message;
+        return res.status(400).json({ success: false, message });
+    }
+    return res.status(201).json({ success: true, room: data });
+});
+
+router.put('/admin/rooms/:roomNumber', async (req, res) => {
+    const roomType = req.body.roomType === 'shop' ? 'shop' : 'residential';
+    const monthlyRent = Number(req.body.monthlyRent);
+    const status = ['available', 'occupied', 'maintenance'].includes(req.body.status)
+        ? req.body.status : 'available';
+    if (!Number.isFinite(monthlyRent) || monthlyRent < 0) {
+        return res.status(400).json({ success: false, message: 'ค่าเช่าไม่ถูกต้อง' });
+    }
+    const { data, error } = await supabase.from('rooms')
+        .update({ room_type: roomType, monthly_rent: monthlyRent, status })
+        .eq('room_number', req.params.roomNumber).select().maybeSingle();
+    if (error) return res.status(400).json({ success: false, message: error.message });
+    if (!data) return res.status(404).json({ success: false, message: 'ไม่พบห้องพักนี้' });
+    return res.json({ success: true, room: data });
+});
+
+// ตั้งค่าอัตราค่าน้ำและค่าไฟ แยกห้องพัก / ร้านเช่า
+router.get('/admin/utility-rates', async (req, res) => {
+    const { data, error } = await supabase.from('utility_rates').select('*').order('property_type');
+    if (error) return res.status(500).json({ success: false, message: error.message });
+    return res.json({ success: true, rates: data || [] });
+});
+
+router.put('/admin/utility-rates/:propertyType', async (req, res) => {
+    const propertyType = req.params.propertyType;
+    const waterRate = Number(req.body.waterRate);
+    const electricityRate = Number(req.body.electricityRate);
+    if (!['residential', 'shop'].includes(propertyType)) {
+        return res.status(400).json({ success: false, message: 'ประเภทพื้นที่ไม่ถูกต้อง' });
+    }
+    if (![waterRate, electricityRate].every(value => Number.isFinite(value) && value >= 0)) {
+        return res.status(400).json({ success: false, message: 'อัตราค่าน้ำหรือค่าไฟไม่ถูกต้อง' });
+    }
+    const { data, error } = await supabase.from('utility_rates').upsert({
+        property_type: propertyType,
+        water_rate: waterRate,
+        electricity_rate: electricityRate,
+        updated_at: new Date().toISOString()
+    }, { onConflict: 'property_type' }).select().single();
+    if (error) return res.status(400).json({ success: false, message: error.message });
+    return res.json({ success: true, rate: data });
 });
 
 // 🟢 จุดสำคัญ: บอก Express ให้ครอบคลุม Base Path ของ Netlify
