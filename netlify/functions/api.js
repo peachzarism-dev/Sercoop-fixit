@@ -11,8 +11,19 @@ app.use(cors());
 app.use(express.json());
 
 const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_KEY || process.env.SUPABASE_ANON_KEY;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY || process.env.SUPABASE_ANON_KEY;
 const sessionSecret = process.env.ADMIN_SESSION_SECRET || supabaseKey;
+
+function getJwtRole(key) {
+    try {
+        const payload = key.split('.')[1];
+        return payload ? JSON.parse(Buffer.from(payload, 'base64url').toString()).role : null;
+    } catch {
+        return null;
+    }
+}
+
+const configuredKeyRole = supabaseKey ? getJwtRole(supabaseKey) : null;
 
 function createAdminToken(user) {
     const payload = Buffer.from(JSON.stringify({ id: user.id, name: user.full_name, exp: Date.now() + 8 * 60 * 60 * 1000 })).toString('base64url');
@@ -48,6 +59,13 @@ function requireSupabase(req, res, next) {
         return res.status(500).json({
             success: false,
             message: 'เซิร์ฟเวอร์ยังไม่ได้ตั้งค่า SUPABASE_URL และ SUPABASE_KEY'
+        });
+    }
+    if (configuredKeyRole === 'anon') {
+        return res.status(500).json({
+            success: false,
+            isRegistered: false,
+            message: 'Netlify ยังใช้ Supabase Anon Key กรุณาตั้งค่า SUPABASE_SERVICE_ROLE_KEY แล้ว Deploy ใหม่'
         });
     }
     next();
@@ -294,18 +312,31 @@ router.post('/submit-repair', async (req, res) => {
 
 // 1. API Login
 router.post('/admin/login', async (req, res) => {
-    const { username, password } = req.body;
-    const { data, error } = await supabase
-        .from('staff_users')
-        .select('id, username, full_name, role')
-        .eq('username', username)
-        .eq('password', password)
-        .single();
+    try {
+        const username = String(req.body.username || '').trim();
+        const password = String(req.body.password || '');
+        if (!username || !password) {
+            return res.status(400).json({ success: false, message: 'กรุณากรอกชื่อผู้ใช้และรหัสผ่าน' });
+        }
+        const { data, error } = await supabase
+            .from('staff_users')
+            .select('id, username, full_name, role')
+            .eq('username', username)
+            .eq('password', password)
+            .maybeSingle();
 
-    if (error || !data) {
-        return res.status(401).json({ success: false, message: 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง' });
+        if (error) {
+            console.error('Admin login database error:', error);
+            return res.status(500).json({ success: false, message: `เชื่อมต่อฐานข้อมูลเจ้าหน้าที่ไม่ได้: ${error.message}` });
+        }
+        if (!data) {
+            return res.status(401).json({ success: false, message: 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง หรือยังไม่มีบัญชีเจ้าหน้าที่ในฐานข้อมูล' });
+        }
+        return res.json({ success: true, user: data, token: createAdminToken(data) });
+    } catch (err) {
+        console.error('Admin login crash:', err);
+        return res.status(500).json({ success: false, message: 'เกิดข้อผิดพลาดภายในเซิร์ฟเวอร์' });
     }
-    res.json({ success: true, user: data, token: createAdminToken(data) });
 });
 
 router.use('/admin', requireAdmin);

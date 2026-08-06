@@ -14,7 +14,7 @@
 ## Environment Variables บน Netlify
 
 - `SUPABASE_URL` — Project URL จาก Supabase
-- `SUPABASE_KEY` — ต้องใช้ Service Role Key และเก็บไว้เฉพาะใน Netlify เพื่อให้ API เข้าถึงข้อมูลที่ปิดจากผู้ใช้ทั่วไปได้
+- `SUPABASE_SERVICE_ROLE_KEY` — Service Role Key จาก Supabase และเก็บไว้เฉพาะใน Netlify เพื่อให้ API เข้าถึงข้อมูลที่ปิดจากผู้ใช้ทั่วไปได้
 - `ADMIN_SESSION_SECRET` — ข้อความสุ่มยาวอย่างน้อย 32 ตัวอักษร สำหรับป้องกันข้อมูลเจ้าหน้าที่และบัญชีธนาคาร
 
 อย่าใส่ Service Role Key ในไฟล์ HTML หรือ JavaScript ฝั่งหน้าเว็บ เนื่องจากข้อมูลผู้เช่ามีหมายเลขบัญชีธนาคาร

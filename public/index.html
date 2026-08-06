@@ -210,11 +210,16 @@
         }
 
         async function checkRegistration(lineId) {
-            const res = await fetch(`/api/check-user?lineId=${lineId}`);
-            const data = await res.json();
-            
-            document.getElementById("loading").style.display = "none";
-            if (data.isRegistered) {
+            try {
+                const res = await fetch(`/api/check-user?lineId=${encodeURIComponent(lineId)}`);
+                const data = await res.json();
+                document.getElementById("loading").style.display = "none";
+                if (!res.ok) {
+                    alert(data.message || "ไม่สามารถเชื่อมต่อระบบสมาชิกได้");
+                    document.getElementById("register-form").style.display = "block";
+                    return;
+                }
+                if (data.isRegistered) {
                 currentStudent = data;
                 document.getElementById("userName").innerText = data.studentName;
                 document.getElementById("userRoom").innerText = data.room;
@@ -224,8 +229,14 @@
                 currentRoom = data.room;
                 document.getElementById("bottomNav").classList.add("visible");
                 switchPage('dashboard');
-            } else {
+                } else {
+                    document.getElementById("register-form").style.display = "block";
+                }
+            } catch (error) {
+                console.error("Check registration error", error);
+                document.getElementById("loading").style.display = "none";
                 document.getElementById("register-form").style.display = "block";
+                alert("ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ กรุณาลองใหม่อีกครั้ง");
             }
         }
 
@@ -340,6 +351,7 @@ function openTracker(index) {
             const studentId = document.getElementById("studentId").value;
             if(!studentId) return alert("กรุณากรอกรหัสนักศึกษา");
 
+            try {
             const res = await fetch('/api/link-account', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -351,7 +363,11 @@ function openTracker(index) {
                 alert("ผูกบัญชีสำเร็จเรียบร้อย!");
                 location.reload();
             } else {
-                alert(data.message);
+                alert(data.message || "ไม่สามารถผูกบัญชี LINE ได้");
+            }
+            } catch (error) {
+                console.error("Link account error", error);
+                alert("ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ กรุณาลองใหม่อีกครั้ง");
             }
         }
 
