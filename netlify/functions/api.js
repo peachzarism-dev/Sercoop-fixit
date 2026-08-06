@@ -2,6 +2,7 @@ const express = require('express');
 const serverless = require('serverless-http');
 const { createClient } = require('@supabase/supabase-js');
 const cors = require('cors');
+const crypto = require('crypto');
 
 const app = express();
 const router = express.Router();
@@ -11,6 +12,31 @@ app.use(express.json());
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_KEY || process.env.SUPABASE_ANON_KEY;
+const sessionSecret = process.env.ADMIN_SESSION_SECRET || supabaseKey;
+
+function createAdminToken(user) {
+    const payload = Buffer.from(JSON.stringify({ id: user.id, name: user.full_name, exp: Date.now() + 8 * 60 * 60 * 1000 })).toString('base64url');
+    const signature = crypto.createHmac('sha256', sessionSecret).update(payload).digest('base64url');
+    return `${payload}.${signature}`;
+}
+
+function requireAdmin(req, res, next) {
+    const token = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '');
+    const [payload, signature] = token.split('.');
+    if (!payload || !signature || !sessionSecret) return res.status(401).json({ success: false, message: 'กรุณาเข้าสู่ระบบใหม่' });
+    const expected = crypto.createHmac('sha256', sessionSecret).update(payload).digest('base64url');
+    if (signature.length !== expected.length || !crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected))) {
+        return res.status(401).json({ success: false, message: 'เซสชันไม่ถูกต้อง กรุณาเข้าสู่ระบบใหม่' });
+    }
+    try {
+        const session = JSON.parse(Buffer.from(payload, 'base64url').toString());
+        if (!session.exp || session.exp < Date.now()) return res.status(401).json({ success: false, message: 'เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่' });
+        req.admin = session;
+        next();
+    } catch {
+        return res.status(401).json({ success: false, message: 'เซสชันไม่ถูกต้อง กรุณาเข้าสู่ระบบใหม่' });
+    }
+}
 
 // อย่าให้ Serverless Function ล่มตั้งแต่โหลดไฟล์ หากยังตั้งค่า env ไม่ครบ
 const supabase = supabaseUrl && supabaseKey
@@ -279,8 +305,10 @@ router.post('/admin/login', async (req, res) => {
     if (error || !data) {
         return res.status(401).json({ success: false, message: 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง' });
     }
-    res.json({ success: true, user: data });
+    res.json({ success: true, user: data, token: createAdminToken(data) });
 });
+
+router.use('/admin', requireAdmin);
 
 // 2. API ดึงรายการแจ้งซ่อม Admin
 router.get('/admin/repairs', async (req, res) => {
@@ -355,7 +383,7 @@ router.post('/admin/update-repair', async (req, res) => {
 router.get('/admin/students', async (req, res) => {
     const { data, error } = await supabase
         .from('students')
-        .select('student_id, full_name, phone, room_number, line_user_id, created_at')
+        .select('student_id, full_name, phone, bank_name, bank_account_name, bank_account_number, room_number, line_user_id, created_at')
         .order('student_id');
     if (error) return res.status(500).json({ success: false, message: error.message });
     return res.json({ success: true, students: data || [] });
@@ -365,9 +393,15 @@ router.post('/admin/students', async (req, res) => {
     const studentId = String(req.body.studentId || '').trim();
     const fullName = String(req.body.fullName || '').trim();
     const phone = String(req.body.phone || '').trim() || null;
+    const bankName = String(req.body.bankName || '').trim() || null;
+    const bankAccountName = String(req.body.bankAccountName || '').trim() || null;
+    const bankAccountNumber = String(req.body.bankAccountNumber || '').replace(/[^0-9]/g, '') || null;
     const roomNumber = String(req.body.roomNumber || '').trim() || null;
     if (!studentId || !fullName) {
         return res.status(400).json({ success: false, message: 'กรุณากรอกรหัสและชื่อผู้เช่า' });
+    }
+    if (bankAccountNumber && (bankAccountNumber.length < 8 || bankAccountNumber.length > 20)) {
+        return res.status(400).json({ success: false, message: 'หมายเลขบัญชีธนาคารต้องมี 8–20 หลัก' });
     }
 
     if (roomNumber) {
@@ -379,7 +413,7 @@ router.post('/admin/students', async (req, res) => {
 
     const { data, error } = await supabase
         .from('students')
-        .insert([{ student_id: studentId, full_name: fullName, phone, room_number: roomNumber }])
+        .insert([{ student_id: studentId, full_name: fullName, phone, bank_name: bankName, bank_account_name: bankAccountName, bank_account_number: bankAccountNumber, room_number: roomNumber }])
         .select().single();
     if (error) {
         const message = error.code === '23505' ? 'รหัสผู้เช่านี้มีอยู่แล้ว' : error.message;
@@ -391,11 +425,17 @@ router.post('/admin/students', async (req, res) => {
 router.put('/admin/students/:studentId', async (req, res) => {
     const fullName = String(req.body.fullName || '').trim();
     const phone = String(req.body.phone || '').trim() || null;
+    const bankName = String(req.body.bankName || '').trim() || null;
+    const bankAccountName = String(req.body.bankAccountName || '').trim() || null;
+    const bankAccountNumber = String(req.body.bankAccountNumber || '').replace(/[^0-9]/g, '') || null;
     const roomNumber = String(req.body.roomNumber || '').trim() || null;
     if (!fullName) return res.status(400).json({ success: false, message: 'กรุณากรอกชื่อผู้เช่า' });
+    if (bankAccountNumber && (bankAccountNumber.length < 8 || bankAccountNumber.length > 20)) {
+        return res.status(400).json({ success: false, message: 'หมายเลขบัญชีธนาคารต้องมี 8–20 หลัก' });
+    }
 
     const { data, error } = await supabase.from('students')
-        .update({ full_name: fullName, phone, room_number: roomNumber })
+        .update({ full_name: fullName, phone, bank_name: bankName, bank_account_name: bankAccountName, bank_account_number: bankAccountNumber, room_number: roomNumber })
         .eq('student_id', req.params.studentId).select().maybeSingle();
     if (error) return res.status(400).json({ success: false, message: error.message });
     if (!data) return res.status(404).json({ success: false, message: 'ไม่พบผู้เช่านี้' });
@@ -413,13 +453,15 @@ router.post('/admin/rooms', async (req, res) => {
     const roomNumber = String(req.body.roomNumber || '').trim();
     const roomType = req.body.roomType === 'shop' ? 'shop' : 'residential';
     const monthlyRent = Number(req.body.monthlyRent);
-    if (!roomNumber || !Number.isFinite(monthlyRent) || monthlyRent < 0) {
+    const occupancyLimit = Number(req.body.occupancyLimit);
+    if (!roomNumber || !Number.isFinite(monthlyRent) || monthlyRent < 0 || ![1, 2, 3].includes(occupancyLimit)) {
         return res.status(400).json({ success: false, message: 'กรุณากรอกเลขห้องและค่าเช่าให้ถูกต้อง' });
     }
     const { data, error } = await supabase.from('rooms').insert([{
         room_number: roomNumber,
         room_type: roomType,
         monthly_rent: monthlyRent,
+        occupancy_limit: occupancyLimit,
         status: 'available'
     }]).select().single();
     if (error) {
@@ -432,13 +474,14 @@ router.post('/admin/rooms', async (req, res) => {
 router.put('/admin/rooms/:roomNumber', async (req, res) => {
     const roomType = req.body.roomType === 'shop' ? 'shop' : 'residential';
     const monthlyRent = Number(req.body.monthlyRent);
+    const occupancyLimit = Number(req.body.occupancyLimit);
     const status = ['available', 'occupied', 'maintenance'].includes(req.body.status)
         ? req.body.status : 'available';
-    if (!Number.isFinite(monthlyRent) || monthlyRent < 0) {
-        return res.status(400).json({ success: false, message: 'ค่าเช่าไม่ถูกต้อง' });
+    if (!Number.isFinite(monthlyRent) || monthlyRent < 0 || ![1, 2, 3].includes(occupancyLimit)) {
+        return res.status(400).json({ success: false, message: 'ค่าเช่าหรือจำนวนผู้เข้าพักไม่ถูกต้อง' });
     }
     const { data, error } = await supabase.from('rooms')
-        .update({ room_type: roomType, monthly_rent: monthlyRent, status })
+        .update({ room_type: roomType, monthly_rent: monthlyRent, occupancy_limit: occupancyLimit, status })
         .eq('room_number', req.params.roomNumber).select().maybeSingle();
     if (error) return res.status(400).json({ success: false, message: error.message });
     if (!data) return res.status(404).json({ success: false, message: 'ไม่พบห้องพักนี้' });

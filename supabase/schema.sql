@@ -6,6 +6,7 @@ create table if not exists public.rooms (
     room_type text not null default 'residential'
         check (room_type in ('residential', 'shop')),
     monthly_rent numeric(12,2) not null default 0 check (monthly_rent >= 0),
+    occupancy_limit smallint not null default 1 check (occupancy_limit between 1 and 3),
     status text not null default 'available'
         check (status in ('available', 'occupied', 'maintenance')),
     created_at timestamptz not null default now(),
@@ -16,6 +17,9 @@ create table if not exists public.students (
     student_id text primary key,
     full_name text not null,
     phone text,
+    bank_name text,
+    bank_account_name text,
+    bank_account_number text,
     room_number text,
     line_user_id text unique,
     created_at timestamptz not null default now(),
@@ -23,10 +27,14 @@ create table if not exists public.students (
 );
 
 alter table public.students add column if not exists phone text;
+alter table public.students add column if not exists bank_name text;
+alter table public.students add column if not exists bank_account_name text;
+alter table public.students add column if not exists bank_account_number text;
 alter table public.students add column if not exists room_number text;
 alter table public.students add column if not exists line_user_id text;
 alter table public.students add column if not exists created_at timestamptz not null default now();
 alter table public.students add column if not exists updated_at timestamptz not null default now();
+alter table public.rooms add column if not exists occupancy_limit smallint not null default 1;
 create unique index if not exists students_line_user_id_unique
     on public.students (line_user_id) where line_user_id is not null;
 
@@ -71,11 +79,12 @@ create index if not exists repair_tickets_room_idx on public.repair_tickets (roo
 create index if not exists repair_tickets_status_idx on public.repair_tickets (status);
 create index if not exists students_room_idx on public.students (room_number);
 
--- API ปัจจุบันทำงานผ่าน Netlify Function โดยใช้ Supabase key จาก environment
-grant select, insert, update, delete on public.rooms to anon, authenticated;
-grant select, insert, update, delete on public.students to anon, authenticated;
-grant select, insert, update, delete on public.repair_tickets to anon, authenticated;
-grant select, insert, update, delete on public.utility_rates to anon, authenticated;
-grant select, insert, update, delete on public.staff_users to anon, authenticated;
-grant usage, select on all sequences in schema public to anon, authenticated;
-
+-- ข้อมูลบัญชีธนาคารต้องไม่เปิดให้อ่านตรงด้วย anon key
+revoke all on public.rooms, public.students, public.repair_tickets, public.utility_rates, public.staff_users from anon;
+revoke all on all sequences in schema public from anon;
+grant select, insert, update, delete on public.rooms to authenticated;
+grant select, insert, update, delete on public.students to authenticated;
+grant select, insert, update, delete on public.repair_tickets to authenticated;
+grant select, insert, update, delete on public.utility_rates to authenticated;
+grant select, insert, update, delete on public.staff_users to authenticated;
+grant usage, select on all sequences in schema public to authenticated;
